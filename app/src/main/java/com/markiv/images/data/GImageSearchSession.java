@@ -2,12 +2,14 @@
 package com.markiv.images.data;
 
 import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import android.support.v4.util.LruCache;
-import android.util.Log;
 
 import com.android.volley.Response;
-import com.android.volley.VolleyError;
 import com.markiv.images.data.model.GISearchResponse;
 import com.markiv.images.data.model.GISearchResult;
 
@@ -20,8 +22,7 @@ import com.markiv.images.data.model.GISearchResult;
  * @author vikrambd
  * @since 1/20/15
  */
-public class GImageSearchSession implements Response.Listener<GISearchResponse>,
-        Response.ErrorListener {
+public class GImageSearchSession {
     private static final int LRU_CACHE_SIZE = 10;
 
     private final GISearchService mSearchService;
@@ -37,24 +38,37 @@ public class GImageSearchSession implements Response.Listener<GISearchResponse>,
         mSearchService = searchService;
         mPageSize = pageSize;
 
-        //asyncGetBlock(0);
+        //Pre-fetch the first block by asking for the 0th position
+        getSearchResult(0, null, null);
     }
 
-    private void blockingGetBlock(int start) {
-        try {
-            GISearchResponse response = mSearchService.blockingQuery(mQuery, start, mPageSize);
-            onResponse(response);
-        } catch (Exception e) {
-            // TODO
-        }
-    }
+    public Future<GISearchResult> blockingGetSearchResult2(int position) {
+        return new Future<GISearchResult>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return false;
+            }
 
-    private void asyncGetBlock(int start) {
-        try {
-            mSearchService.asyncQuery(mQuery, start, mPageSize, this, this);
-        } catch (Exception e) {
-            // TODO
-        }
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+
+            @Override
+            public boolean isDone() {
+                return false;
+            }
+
+            @Override
+            public GISearchResult get() throws InterruptedException, ExecutionException {
+                return null;
+            }
+
+            @Override
+            public GISearchResult get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                return null;
+            }
+        };
     }
 
     public GISearchResult blockingGetSearchResult(int position) {
@@ -63,19 +77,49 @@ public class GImageSearchSession implements Response.Listener<GISearchResponse>,
             result = mImageSearchResults.get(position);
         }
         if (result == null) {
-            blockingGetBlock(position/mPageSize);
+            try {
+                GISearchResponse response = mSearchService.blockingQuery(mQuery, position / mPageSize, mPageSize);
+                processResponse(response);
+            }
+            catch (Exception e){
+                //TODO
+            }
+            result = mImageSearchResults.get(position);
         }
         return result;
     }
 
-    @Override
-    public void onErrorResponse(VolleyError error) {
-        // TODO Get failed URL
-        Log.e("GImageSearchSession", "Failed to fetch data: " + error.networkResponse.statusCode);
+    public void getSearchResult(final int position, final Response.Listener<GISearchResult> searchResultListener, final Response.ErrorListener errorListener) {
+        GISearchResult result = null;
+        synchronized (LRC_CACHE_LOCK) {
+            result = mImageSearchResults.get(position);
+        }
+        if (result == null) {
+            try {
+                mSearchService.asyncQuery(mQuery, position/mPageSize, mPageSize, new Response.Listener<GISearchResponse>() {
+                    @Override
+                    public void onResponse(GISearchResponse response) {
+                        processResponse(response);
+                        if(searchResultListener != null) {
+                            searchResultListener.onResponse(mImageSearchResults.get(position));
+                        }
+                    }
+                }, errorListener);
+                //GISearchResponse response = mSearchService.blockingQuery(mQuery, position / mPageSize, mPageSize);
+                //onResponse(response);
+            }
+            catch (Exception e){
+                //TODO
+            }
+            //result = mImageSearchResults.get(position);
+        }
+        else {
+            searchResultListener.onResponse(mImageSearchResults.get(position));
+        }
+        //return result;
     }
 
-    @Override
-    public void onResponse(GISearchResponse response) {
+    private void processResponse(GISearchResponse response){
         if (response.isSuccess()) {
             Iterator<GISearchResult> results = response.getSearchResults();
             int start = response.start;
