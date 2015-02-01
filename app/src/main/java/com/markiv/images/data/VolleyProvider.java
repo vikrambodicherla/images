@@ -11,14 +11,28 @@ import com.android.volley.toolbox.Volley;
  * @since 1/20/15
  */
 public class VolleyProvider {
-    private static RequestQueue queue = null;
+    private static VolleyProvider sVolleyProvider;
 
-    private VolleyProvider() { }
+    private final RequestQueue queue;
+    private final RequestQueue mImageRequestQueue;
 
-    public static synchronized RequestQueue getQueue(Context context) {
-        if (queue == null) {
-            queue = Volley.newRequestQueue(context.getApplicationContext());
-        }
+    private VolleyProvider(Context context) {
+        queue = Volley.newRequestQueue(context.getApplicationContext());
+        mImageRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
+    }
+
+    public RequestQueue getQueue() {
         return queue;
+    }
+
+    public RequestQueue getImageRequestQueue(){
+        return mImageRequestQueue;
+    }
+
+    public static VolleyProvider getInstance(Context context) {
+        if (sVolleyProvider == null) {
+            sVolleyProvider = new VolleyProvider(context);
+        }
+        return sVolleyProvider;
     }
 }

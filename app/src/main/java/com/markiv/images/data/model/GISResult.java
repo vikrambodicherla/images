@@ -5,14 +5,14 @@ package com.markiv.images.data.model;
  * @author vikrambd
  * @since 1/20/15
  */
-public class GISearchResult {
+public class GISResult {
     private String titleNoFormatting;
     private String url;
 
     private int height;
     private int width;
 
-    public GISearchResult() {
+    public GISResult() {
     }
 
     public void setHeight(int height) {
