@@ -5,14 +5,23 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import android.content.Context;
+import android.content.res.Resources;
+import android.graphics.Color;
+import android.graphics.Point;
 import android.os.AsyncTask;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.AbsListView;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
+import com.markiv.images.GImageSearchApplication;
+import com.markiv.images.R;
 import com.markiv.images.data.GISSession;
 import com.markiv.images.data.VolleyProvider;
 import com.markiv.images.data.model.GISResult;
@@ -26,6 +35,8 @@ class GImageSearchAdapter extends BaseAdapter {
     private final GISSession mSearchSession;
     private final ImageLoader mImageLoader;
 
+    private AbsListView.LayoutParams mCellLayoutParams;
+
     //TODO Externalize
     private static final int MAX_SEARCH_RESULTS = 64;
 
@@ -33,6 +44,21 @@ class GImageSearchAdapter extends BaseAdapter {
         mContext = context;
         mSearchSession = searchSession;
         mImageLoader = new ImageLoader(VolleyProvider.getInstance(context).getImageRequestQueue(), LruBitmapCache.getInstance(context));
+
+        setupCellLayoutParams();
+    }
+
+    private void setupCellLayoutParams(){
+        final Resources res = mContext.getResources();
+        final int gridHorizontalSpacing = res.getDimensionPixelSize(R.dimen.grid_horizontal_spacing);
+
+        final Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+        final Point size = new Point();
+        display.getSize(size);
+        final int screenWidth = size.x;
+
+        final int cellWidth = (screenWidth - 4 * gridHorizontalSpacing)/3;
+        mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
     @Override
@@ -42,7 +68,6 @@ class GImageSearchAdapter extends BaseAdapter {
 
     @Override
     public Object getItem(int position) {
-        //return mSearchSession.blockingGetSearchResult2(position);
         return null;
     }
 
@@ -56,6 +81,10 @@ class GImageSearchAdapter extends BaseAdapter {
         NetworkImageView networkImageView;
         if(convertView == null){
             networkImageView = new NetworkImageView(mContext);
+            networkImageView.setBackgroundColor(Color.RED);
+            networkImageView.setLayoutParams(mCellLayoutParams);
+            networkImageView.setAdjustViewBounds(true);
+            networkImageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
         }
         else {
             networkImageView = (NetworkImageView) convertView;
@@ -126,8 +155,12 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         public void setData(NetworkImageView view, GISResult data){
-            Log.d("GImageSearchAdapter", mPosition + ": " + data.getTitle());
-            view.setImageUrl(data.getUrl(), mImageLoader);
+            if(data != null) {
+                view.setImageUrl(data.getUrl(), mImageLoader);
+            }
+            else {
+                GImageSearchApplication.notifyError(mContext, "Server access error");
+            }
         }
     }
 }

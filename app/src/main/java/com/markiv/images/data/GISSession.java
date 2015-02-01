@@ -31,6 +31,9 @@ public class GISSession {
         mPageSize = pageSize;
 
         mCache = new GISCache();
+
+        //Prefetch
+        fetchResult(0);
     }
 
     public Future<GISResult> fetchResult(int pos) {
@@ -85,26 +88,4 @@ public class GISSession {
     public static GISSession newSession(String query, int pageSize){
         return new GISSession(GISService.getInstance(), query, pageSize);
     }
-
-        /*public class Builder {
-        private String query;
-        private int pageSize;
-
-        public Builder(String query) {
-            this.query = query;
-        }
-
-        public Builder withPageSize(int pageSize){
-            this.pageSize = pageSize;
-            return this;
-        }
-
-        public GImageSearchSession start(){
-            if(pageSize > 4 || pageSize < 0){
-                throw new IllegalArgumentException("Invalid page size");
-            }
-
-            return new GImageSearchSession(GISearchService.this, query, pageSize);
-        }
-    }*/
 }

@@ -1,7 +1,11 @@
 package com.markiv.images.data;
 
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
 import java.net.URLEncoder;
+import java.util.Enumeration;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
@@ -18,6 +22,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 
+import android.text.format.Formatter;
 import android.util.Log;
 
 import com.google.gson.GsonBuilder;
@@ -33,16 +38,18 @@ import com.markiv.images.data.model.GISResponse;
 public class GISService {
     private static GISService sGISService;
 
-    private static final Object REQUEST_LIST_LOCK = new Object();
+    private static final Object sREQUEST_LIST_LOCK = new Object();
 
     private final ExecutorService mExecutors = Executors.newFixedThreadPool(4);
     private final HttpClient mHttpClient = new DefaultHttpClient();
     
     private final ConcurrentHashMap<String, Future<GISResponse>> mInFlightRequests = new ConcurrentHashMap<>();
 
+    private final String mLocalIpAddress;
+
     //TODO Externalize
     //private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
-    private static final String sSEARCH_QUERY_URL = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1$s&start=%2$s&rsz=%3$s";
+    private static final String sSEARCH_QUERY_URL = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1$s&start=%2$s&rsz=%3$s&userip=%4$s&imgsz=small";
 
     //TODO Overload for testability
     public static synchronized GISService getInstance(){
@@ -52,8 +59,12 @@ public class GISService {
         return sGISService;
     }
 
+    public GISService() {
+        mLocalIpAddress = getLocalIpAddress();
+    }
+
     public Future<GISResponse> fetchPage(final String query, final int start, final int rsz) {
-        synchronized (REQUEST_LIST_LOCK) {
+        synchronized (sREQUEST_LIST_LOCK) {
             final String requestIdentifier = getRequestIdentifier(query, start, rsz);
             Future<GISResponse> inFlightSearchResponseFuture = mInFlightRequests.get(requestIdentifier);
             if(inFlightSearchResponseFuture != null){
@@ -82,7 +93,7 @@ public class GISService {
 
                     @Override
                     public GISResponse get() throws InterruptedException, ExecutionException {
-                        synchronized (REQUEST_LIST_LOCK){
+                        synchronized (sREQUEST_LIST_LOCK){
                             mInFlightRequests.remove(requestIdentifier);
                         }
                         return searchResponseFuture.get();
@@ -90,7 +101,7 @@ public class GISService {
 
                     @Override
                     public GISResponse get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                        synchronized (REQUEST_LIST_LOCK){
+                        synchronized (sREQUEST_LIST_LOCK){
                             mInFlightRequests.remove(requestIdentifier);
                         }
                         return searchResponseFuture.get(timeout, unit);
@@ -133,7 +144,8 @@ public class GISService {
             HttpResponse response = mHttpClient.execute(get);
             if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
                 String jsonString = EntityUtils.toString(response.getEntity());
-                return parse(jsonString, mQuery, mStart, mRsz);
+                GISResponse gisResponse = parse(jsonString, mQuery, mStart, mRsz);
+                return gisResponse;
             }
             else {
                 return null;
@@ -142,7 +154,7 @@ public class GISService {
 
         public String buildUrl(String query, int start, int rsz) {
             try {
-                return String.format(sSEARCH_QUERY_URL, URLEncoder.encode(query, "utf-8"), String.valueOf(start), String.valueOf(rsz));
+                return String.format(sSEARCH_QUERY_URL, URLEncoder.encode(query, "utf-8"), String.valueOf(start), String.valueOf(rsz), mLocalIpAddress);
             }
             catch (UnsupportedEncodingException e){
                 Log.e("GImageSearchService", "Encoding the query to utf-8 failed", e);
@@ -163,49 +175,21 @@ public class GISService {
         }
     }
 
-    /*private class GISearchRequest extends Request<GISearchResponse>{
-        private int start;
-        private int rsz;
-
-        private Response.Listener<GISearchResponse> listener;
-
-        private GISearchRequest(int start, int rsz, String url, Response.Listener<GISearchResponse> listener, Response.ErrorListener errorListener) {
-            super(Method.GET, url, errorListener);
-            this.start = start;
-            this.rsz = rsz;
-            this.listener = listener;
-        }
-
-        @Override
-        protected Response<GISearchResponse> parseNetworkResponse(NetworkResponse response) {
-            String jsonString;
-            try {
-                jsonString = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
-            }
-            catch (UnsupportedEncodingException e){
-                Log.e("GImageSearchService", "Unable to parse server-response, encoding not supported", e);
-                return null;
-            }
-
-            return Response.success(parse(jsonString, start, rsz), HttpHeaderParser.parseCacheHeaders(response));
-        }
-
-        @Override
-        protected void deliverResponse(GISearchResponse response) {
-            listener.onResponse(response);
-        }
-    }*/
-
-    /*private static String buildUrl(String query, int start, int rsz) {
-        String url = null;
+    public String getLocalIpAddress() {
         try {
-            url = String.format(sSEARCH_QUERY_URL, URLEncoder.encode(query, "utf-8"), String.valueOf(start), String.valueOf(rsz));
+            for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en.hasMoreElements();) {
+                NetworkInterface intf = en.nextElement();
+                for (Enumeration<InetAddress> enumIpAddr = intf.getInetAddresses(); enumIpAddr.hasMoreElements();) {
+                    InetAddress inetAddress = enumIpAddr.nextElement();
+                    if (!inetAddress.isLoopbackAddress()) {
+                        String ip = Formatter.formatIpAddress(inetAddress.hashCode());
+                        return ip;
+                    }
+                }
+            }
+        } catch (SocketException ex) {
+            //
         }
-        catch (UnsupportedEncodingException e){
-            Log.e("GImageSearchService", "Encoding the query to utf-8 failed", e);
-            throw new RuntimeException("");
-        }
-
-        return url;
-    }*/
+        return null;
+    }
 }

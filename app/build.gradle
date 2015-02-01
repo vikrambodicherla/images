@@ -4,9 +4,10 @@ android {
     compileSdkVersion 21
     buildToolsVersion "21.1.2"
 
+    //minSdkTarget 13 is only for convinience - getting the window size
     defaultConfig {
         applicationId "com.markiv.images"
-        minSdkVersion 8
+        minSdkVersion 13
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"

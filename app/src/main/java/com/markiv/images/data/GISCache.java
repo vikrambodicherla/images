@@ -15,7 +15,7 @@ import com.markiv.images.data.model.GISResult;
  * @since 1/31/15
  */
 public class GISCache {
-    private final LruCache<Integer, GISResult> mImageSearchResults = new LruCache<>(4);
+    private final LruCache<Integer, GISResult> mImageSearchResults = new LruCache<>(64);
 
     public synchronized void put(int position, GISResult result){
         mImageSearchResults.put(position, result);
