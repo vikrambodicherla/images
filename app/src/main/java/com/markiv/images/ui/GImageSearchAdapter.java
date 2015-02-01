@@ -16,6 +16,7 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
+import android.widget.GridView;
 import android.widget.ImageView;
 
 import com.android.volley.toolbox.ImageLoader;
@@ -58,7 +59,7 @@ class GImageSearchAdapter extends BaseAdapter {
         final int screenWidth = size.x;
 
         final int cellWidth = (screenWidth - 4 * gridHorizontalSpacing)/3;
-        mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, GridView.AUTO_FIT);
     }
 
     @Override
@@ -84,7 +85,7 @@ class GImageSearchAdapter extends BaseAdapter {
             networkImageView.setBackgroundColor(Color.RED);
             networkImageView.setLayoutParams(mCellLayoutParams);
             networkImageView.setAdjustViewBounds(true);
-            networkImageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            networkImageView.setScaleType(ImageView.ScaleType.FIT_XY);
         }
         else {
             networkImageView = (NetworkImageView) convertView;
@@ -135,6 +136,7 @@ class GImageSearchAdapter extends BaseAdapter {
         protected GISResult doInBackground(Void... params) {
             if(!isCancelled()) {
                 try {
+                    //TODO We should ideally be asking for images of the required size, but the GISService doesn't provide for this
                     mResultFuture = mSearchSession.fetchResult(mPosition);
                     return mResultFuture.get();
                 } catch (InterruptedException e) {
