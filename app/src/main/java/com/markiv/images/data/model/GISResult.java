@@ -7,43 +7,43 @@ package com.markiv.images.data.model;
  */
 public class GISResult {
     private String titleNoFormatting;
-    private String url;
 
-    private int height;
-    private int width;
+    private String tbUrl;
+    private int tbHeight;
+    private int tbWidth;
 
     public GISResult() {
     }
 
-    public void setHeight(int height) {
-        this.height = height;
-    }
-
-    public void setTitle(String title) {
-        this.titleNoFormatting = title;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
-    public void setWidth(int width) {
-        this.width = width;
-    }
-
-    public int getHeight() {
-        return height;
-    }
-
-    public int getWidth() {
-        return width;
-    }
-
-    public String getTitle() {
+    public String getTitleNoFormatting() {
         return titleNoFormatting;
     }
 
-    public String getUrl() {
-        return url;
+    public void setTitleNoFormatting(String titleNoFormatting) {
+        this.titleNoFormatting = titleNoFormatting;
+    }
+
+    public String getTbUrl() {
+        return tbUrl;
+    }
+
+    public void setTbUrl(String tbUrl) {
+        this.tbUrl = tbUrl;
+    }
+
+    public int getTbHeight() {
+        return tbHeight;
+    }
+
+    public void setTbHeight(int tbHeight) {
+        this.tbHeight = tbHeight;
+    }
+
+    public int getTbWidth() {
+        return tbWidth;
+    }
+
+    public void setTbWidth(int tbWidth) {
+        this.tbWidth = tbWidth;
     }
 }

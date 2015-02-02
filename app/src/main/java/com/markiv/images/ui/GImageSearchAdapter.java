@@ -158,7 +158,8 @@ class GImageSearchAdapter extends BaseAdapter {
 
         public void setData(NetworkImageView view, GISResult data){
             if(data != null) {
-                view.setImageUrl(data.getUrl(), mImageLoader);
+                Log.d("GImageSearchAdapter", mPosition + ": " + data.getTbUrl());
+                view.setImageUrl(data.getTbUrl(), mImageLoader);
             }
             else {
                 GImageSearchApplication.notifyError(mContext, "Server access error");

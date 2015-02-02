@@ -49,7 +49,7 @@ public class GISService {
 
     // TODO Externalize
     // private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
-    private static final String sSEARCH_QUERY_URL = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1$s&start=%2$s&rsz=%3$s&userip=%4$s&imgsz=small";
+    private static final String sSEARCH_QUERY_URL = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1$s&start=%2$s&rsz=%3$s&userip=%4$s";
 
     public GISService() {
         mLocalIpAddress = getLocalIpAddress();
