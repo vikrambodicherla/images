@@ -33,6 +33,8 @@ public class GISSession {
         mCache = new GISCache();
 
         //Prefetch
+        //TODO A strategy object can be passed from the UI which takes screen size and device memory
+        //TODO into consideration to prefetch better
         fetchResult(0);
     }
 
@@ -46,7 +48,7 @@ public class GISSession {
             return cachedResult;
         }
         else {
-            return buildWrapperResultGetFuture(pos, mSearchService.fetchPage(mQuery, (pos/mPageSize) * mPageSize, mPageSize));
+            return buildWrapperResultGetFuture(pos, mSearchService.fetchPage((pos/mPageSize) * mPageSize, mPageSize));
         }
     }
 
@@ -97,8 +99,8 @@ public class GISSession {
         }
     }
 
-    //If we at anypoint need more options, we should convert this to a Builder
+    //If we at any point need more options, we should convert this to a Builder
     public static GISSession newSession(String query, int pageSize){
-        return new GISSession(GISService.newInstance(), query, pageSize);
+        return new GISSession(GISService.newInstance(query), query, pageSize);
     }
 }

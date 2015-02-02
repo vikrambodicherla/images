@@ -42,16 +42,19 @@ public class GISService {
 
     private final ExecutorService mExecutors = Executors.newFixedThreadPool(4);
     private final HttpClient mHttpClient = new DefaultHttpClient();
+    private final String mLocalIpAddress;
+
+    private final String mQuery;
+    private Integer mEstimatedResultCount;
 
     private final ConcurrentHashMap<String, Future<GISResponse>> mInFlightRequests = new ConcurrentHashMap<>();
-
-    private final String mLocalIpAddress;
 
     // TODO Externalize
     // private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
     private static final String sSEARCH_QUERY_URL = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1$s&start=%2$s&rsz=%3$s&userip=%4$s";
 
-    public GISService() {
+    public GISService(String query) {
+        mQuery = query;
         mLocalIpAddress = getLocalIpAddress();
     }
 
@@ -59,15 +62,50 @@ public class GISService {
         mExecutors.shutdownNow();
     }
 
-    public Future<GISResponse> fetchPage(final String query, final int start, final int rsz) {
+    public Future<Integer> getEstimatedResultCount(){
+        return new Future<Integer>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                return false;
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+
+            @Override
+            public boolean isDone() {
+                return false;
+            }
+
+            @Override
+            public Integer get() throws InterruptedException, ExecutionException {
+                try {
+                    mEstimatedResultCount.wait();
+                }
+                catch (InterruptedException e){
+
+                }
+                return null;
+            }
+
+            @Override
+            public Integer get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                return null;
+            }
+        };
+    }
+
+    public Future<GISResponse> fetchPage(final int start, final int rsz) {
         synchronized (sREQUEST_LIST_LOCK) {
-            final String requestIdentifier = getRequestIdentifier(query, start, rsz);
+            final String requestIdentifier = getRequestIdentifier(mQuery, start, rsz);
             Future<GISResponse> inFlightSearchResponseFuture = mInFlightRequests
                     .get(requestIdentifier);
             if (inFlightSearchResponseFuture != null) {
                 return inFlightSearchResponseFuture;
             } else {
-                GISGet get = new GISGet(query, start, rsz);
+                GISGet get = new GISGet(mQuery, start, rsz);
                 final Future<GISResponse> searchResponseFuture = mExecutors.submit(get);
 
                 mInFlightRequests.put(requestIdentifier, searchResponseFuture);
@@ -198,7 +236,7 @@ public class GISService {
         return null;
     }
 
-    public static GISService newInstance(){
-        return new GISService();
+    public static GISService newInstance(String query){
+        return new GISService(query);
     }
 }

@@ -21,7 +21,6 @@ import android.widget.ImageView;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
-import com.markiv.images.GImageSearchApplication;
 import com.markiv.images.R;
 import com.markiv.images.data.GISSession;
 import com.markiv.images.data.VolleyProvider;
@@ -38,13 +37,18 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
+    private final MainActivity.ViewSwitcherManager mViewSwitcherManager;
+
+    private boolean mNonZeroResults = false;
+
     //TODO Externalize
     private static final int MAX_SEARCH_RESULTS = 64;
 
-    public GImageSearchAdapter(Context context, GISSession searchSession) {
+    public GImageSearchAdapter(Context context, GISSession searchSession, MainActivity.ViewSwitcherManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;
         mImageLoader = new ImageLoader(VolleyProvider.getInstance(context).getImageRequestQueue(), LruBitmapCache.getInstance(context));
+        mViewSwitcherManager = viewSwitcherManager;
 
         setupCellLayoutParams();
     }
@@ -158,11 +162,12 @@ class GImageSearchAdapter extends BaseAdapter {
 
         public void setData(NetworkImageView view, GISResult data){
             if(data != null) {
-                Log.d("GImageSearchAdapter", mPosition + ": " + data.getTbUrl());
+                mViewSwitcherManager.showGrid();
                 view.setImageUrl(data.getTbUrl(), mImageLoader);
             }
             else {
-                GImageSearchApplication.notifyError(mContext, "Server access error");
+                //TODO Have a second grayed line with the actual error description.
+                mViewSwitcherManager.displayMessage(R.string.search_error);
             }
         }
     }

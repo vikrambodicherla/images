@@ -1,30 +1,28 @@
 package com.markiv.images.ui;
 
 import android.app.SearchManager;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.support.v4.view.MenuItemCompat;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.GridView;
-import android.widget.Toast;
+import android.widget.TextView;
+import android.widget.ViewSwitcher;
 
-import com.markiv.images.GImageSearchApplication;
 import com.markiv.images.R;
 import com.markiv.images.data.GISSession;
 
 public class MainActivity extends ActionBarActivity {
+    private ViewSwitcher mViewSwitcher;
     private GridView mScrollView;
-
-    private boolean mRegisteredForErrors = false;
-    private ErrorBroadcastManager mErrorBroadcastManager;
-    private IntentFilter mErrorIntentFilter;
+    private TextView mMessagesTextView;
+    private ViewSwitcherManager mViewSwitcherManager;
 
     private GISSession mGISSession;
 
@@ -32,10 +30,10 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mScrollView = (GridView) findViewById(R.id.scrollview);
-
-        mErrorBroadcastManager = new ErrorBroadcastManager();
-        mErrorIntentFilter = new IntentFilter(GImageSearchApplication.ACTION_GSAPI_ERROR);
+        mViewSwitcher = (ViewSwitcher) findViewById(R.id.main_switcher);
+        mScrollView = (GridView) findViewById(R.id.main_grid);
+        mMessagesTextView = (TextView) findViewById(R.id.main_message);
+        mViewSwitcherManager = new ViewSwitcherManager();
 
         handleSearchIntent(getIntent());
     }
@@ -61,23 +59,26 @@ public class MainActivity extends ActionBarActivity {
 
                 setupNewSession(query);
             }
+
+            final ActionBar actionBar = getSupportActionBar();
+            actionBar.collapseActionView();
+            actionBar.setTitle(query);
+
+            //Preemptively set this with a delay, let the adapter unset it
+            mViewSwitcher.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    mViewSwitcherManager.displayMessage(R.string.no_search_results);
+                }
+            }, 1000);
         }
     }
 
     private void setupNewSession(String query){
         //TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen size
         mGISSession = GISSession.newSession(query, 8);
-        GImageSearchAdapter adapter = new GImageSearchAdapter(this, mGISSession);
+        GImageSearchAdapter adapter = new GImageSearchAdapter(this, mGISSession, mViewSwitcherManager);
         mScrollView.setAdapter(adapter);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if(!mRegisteredForErrors){
-            registerReceiver(mErrorBroadcastManager, mErrorIntentFilter);
-            mRegisteredForErrors = true;
-        }
     }
 
     @Override
@@ -90,23 +91,14 @@ public class MainActivity extends ActionBarActivity {
         return true;
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if(mRegisteredForErrors){
-            unregisterReceiver(mErrorBroadcastManager);
-            mRegisteredForErrors = false;
+    class ViewSwitcherManager {
+        public void showGrid(){
+            mViewSwitcher.setDisplayedChild(1);
         }
-    }
 
-    private void handleServerError(String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
-    }
-
-    private class ErrorBroadcastManager extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            handleServerError("Unable to connect to the server");
+        public void displayMessage(int messageResId){
+            mViewSwitcher.setDisplayedChild(0);
+            mMessagesTextView.setText(messageResId);
         }
     }
 }
