@@ -65,4 +65,8 @@ public class GISCache {
             return null;
         }
     }
+
+    public synchronized void clear(){
+        mImageSearchResults.evictAll();
+    }
 }

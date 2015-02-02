@@ -7,6 +7,7 @@ import android.util.DisplayMetrics;
 
 import com.android.volley.toolbox.ImageLoader.ImageCache;
 
+//TODO Add disk cache
 public class LruBitmapCache extends LruCache<String, Bitmap>
         implements ImageCache {
 

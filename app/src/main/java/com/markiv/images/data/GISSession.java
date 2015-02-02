@@ -36,6 +36,10 @@ public class GISSession {
         fetchResult(0);
     }
 
+    public String getQuery() {
+        return mQuery;
+    }
+
     public Future<GISResult> fetchResult(int pos) {
         Future<GISResult> cachedResult = mCache.getWrappedInFuture(pos);
         if(cachedResult != null){
@@ -44,6 +48,15 @@ public class GISSession {
         else {
             return buildWrapperResultGetFuture(pos, mSearchService.fetchPage(mQuery, (pos/mPageSize) * mPageSize, mPageSize));
         }
+    }
+
+    public void persist(){
+        //TODO Implement
+    }
+
+    public void kill(){
+        mCache.clear();
+        mSearchService.shutdownNow();
     }
 
     private Future<GISResult> buildWrapperResultGetFuture(final int position, final Future<GISResponse> searchResponseFuture){
@@ -86,6 +99,6 @@ public class GISSession {
 
     //If we at anypoint need more options, we should convert this to a Builder
     public static GISSession newSession(String query, int pageSize){
-        return new GISSession(GISService.getInstance(), query, pageSize);
+        return new GISSession(GISService.newInstance(), query, pageSize);
     }
 }
