@@ -96,7 +96,15 @@ public class GISSession {
     private void processResponse(GISResponse response){
         if (response.isSuccess()) {
             mCache.batchPut(response.start, response.getSearchResults());
+            if(response.start == 0){
+                //This is the first page. Let's persist it to disk, so as to enable faster loading
+                //in case the user searches again
+            }
         }
+    }
+
+    private void persistPage(GISResponse response){
+
     }
 
     //If we at any point need more options, we should convert this to a Builder

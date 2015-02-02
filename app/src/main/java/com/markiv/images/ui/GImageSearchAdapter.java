@@ -37,14 +37,12 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
-    private final MainActivity.ViewSwitcherManager mViewSwitcherManager;
-
-    private boolean mNonZeroResults = false;
+    private final SearchActivity.ViewFlipperManager mViewSwitcherManager;
 
     //TODO Externalize
     private static final int MAX_SEARCH_RESULTS = 64;
 
-    public GImageSearchAdapter(Context context, GISSession searchSession, MainActivity.ViewSwitcherManager viewSwitcherManager) {
+    public GImageSearchAdapter(Context context, GISSession searchSession, SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;
         mImageLoader = new ImageLoader(VolleyProvider.getInstance(context).getImageRequestQueue(), LruBitmapCache.getInstance(context));
@@ -167,7 +165,7 @@ class GImageSearchAdapter extends BaseAdapter {
             }
             else {
                 //TODO Have a second grayed line with the actual error description.
-                mViewSwitcherManager.displayMessage(R.string.search_error);
+                mViewSwitcherManager.showMessage(R.string.search_error);
             }
         }
     }

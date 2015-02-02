@@ -62,41 +62,6 @@ public class GISService {
         mExecutors.shutdownNow();
     }
 
-    public Future<Integer> getEstimatedResultCount(){
-        return new Future<Integer>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return false;
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return false;
-            }
-
-            @Override
-            public boolean isDone() {
-                return false;
-            }
-
-            @Override
-            public Integer get() throws InterruptedException, ExecutionException {
-                try {
-                    mEstimatedResultCount.wait();
-                }
-                catch (InterruptedException e){
-
-                }
-                return null;
-            }
-
-            @Override
-            public Integer get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                return null;
-            }
-        };
-    }
-
     public Future<GISResponse> fetchPage(final int start, final int rsz) {
         synchronized (sREQUEST_LIST_LOCK) {
             final String requestIdentifier = getRequestIdentifier(mQuery, start, rsz);
