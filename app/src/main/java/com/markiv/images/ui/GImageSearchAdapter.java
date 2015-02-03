@@ -26,6 +26,7 @@ import android.widget.ImageView;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
+import com.markiv.images.BuildConfig;
 import com.markiv.images.R;
 import com.markiv.images.data.GISSession;
 import com.markiv.images.data.VolleyProvider;
@@ -36,7 +37,7 @@ import com.markiv.images.data.model.GISResult;
 * @since 1/25/15
 */
 class GImageSearchAdapter extends BaseAdapter {
-    private static final int MAX_SEARCH_RESULTS = 64;
+    private static final int MAX_SEARCH_RESULTS = BuildConfig.MAX_SEARCH_RESULTS;
 
     private final Context mContext;
     private final GISSession mSearchSession;

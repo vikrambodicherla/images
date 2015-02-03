@@ -27,6 +27,7 @@ import android.text.format.Formatter;
 import android.util.Log;
 
 import com.google.gson.GsonBuilder;
+import com.markiv.images.BuildConfig;
 import com.markiv.images.data.model.GISResponse;
 
 /**
@@ -48,9 +49,7 @@ public class GISService {
 
     private final ConcurrentHashMap<String, Future<GISResponse>> mInFlightRequests = new ConcurrentHashMap<>();
 
-    // TODO Externalize
-    // private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
-    private static final String sSEARCH_QUERY_URL = "https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1$s&start=%2$s&rsz=%3$s&userip=%4$s";
+    private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
 
     public GISService(String query) {
         mQuery = query;

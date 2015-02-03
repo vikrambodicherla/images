@@ -12,7 +12,8 @@ android {
         versionCode 1
         versionName "1.0"
 
-        //buildConfigField "String", "GOOGLE_SEARCH_API", "\""
+       buildConfigField "String", "GOOGLE_SEARCH_API", "\"https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1\$s&start=%2\$s&rsz=%3\$s&userip=%4\$s\""
+       buildConfigField "int", "MAX_SEARCH_RESULTS", "64"
     }
     buildTypes {
         release {
