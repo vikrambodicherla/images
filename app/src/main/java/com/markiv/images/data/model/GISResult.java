@@ -46,4 +46,18 @@ public class GISResult {
     public void setTbWidth(int tbWidth) {
         this.tbWidth = tbWidth;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if(o instanceof GISResult) {
+            GISResult other = (GISResult) o;
+            return titleNoFormatting != null && other.titleNoFormatting != null
+                    && titleNoFormatting.equals(other.titleNoFormatting) &&
+                    tbUrl != null && other.tbUrl != null && tbUrl.equals(other.tbUrl) &&
+                    tbHeight == other.tbHeight && tbWidth == other.tbWidth;
+        }
+        else {
+            return false;
+        }
+    }
 }
