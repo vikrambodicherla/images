@@ -3,12 +3,15 @@ package com.markiv.images.ui;
 import android.app.SearchManager;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.widget.SearchView;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.ViewFlipper;
 
@@ -34,6 +37,15 @@ public class MainActivity extends ActionBarActivity {
         if(searchHistoryManager.getSearchHistory().size() > 0){
             ((ViewFlipper) findViewById(R.id.main_switcher)).setDisplayedChild(1);
             mHistoryListView.setAdapter(new SearchHistoryAdapter(this, searchHistoryManager));
+            mHistoryListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    final Intent intent = new Intent(MainActivity.this, SearchActivity.class);
+                    intent.setAction(Intent.ACTION_SEARCH);
+                    intent.putExtra(SearchManager.QUERY, (String) parent.getItemAtPosition(position));
+                    startActivity(intent);
+                }
+            });
         }
     }
 

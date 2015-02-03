@@ -6,9 +6,14 @@ import java.util.concurrent.Future;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Color;
+import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.TransitionDrawable;
 import android.os.AsyncTask;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
@@ -31,6 +36,8 @@ import com.markiv.images.data.model.GISResult;
 * @since 1/25/15
 */
 class GImageSearchAdapter extends BaseAdapter {
+    private static final int MAX_SEARCH_RESULTS = 64;
+
     private final Context mContext;
     private final GISSession mSearchSession;
     private final ImageLoader mImageLoader;
@@ -39,8 +46,13 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private final SearchActivity.ViewFlipperManager mViewSwitcherManager;
 
-    //TODO Externalize
-    private static final int MAX_SEARCH_RESULTS = 64;
+    /*
+     * We start by assuming we have 64 results. The first time we get a response, we adjust this number
+     * if needed
+     */
+    private boolean resultCountAdjusted = false;
+    private int actualResultCount = -1;
+    private int displayedResultCount = MAX_SEARCH_RESULTS;
 
     public GImageSearchAdapter(Context context, GISSession searchSession, SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
@@ -66,7 +78,7 @@ class GImageSearchAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return MAX_SEARCH_RESULTS;
+        return displayedResultCount;
     }
 
     @Override
@@ -83,8 +95,7 @@ class GImageSearchAdapter extends BaseAdapter {
     public View getView(int position, View convertView, ViewGroup parent) {
         NetworkImageView networkImageView;
         if(convertView == null){
-            networkImageView = new NetworkImageView(mContext);
-            networkImageView.setBackgroundColor(Color.RED);
+            networkImageView = new FadeInNetworkImageView(mContext);
             networkImageView.setLayoutParams(mCellLayoutParams);
             networkImageView.setAdjustViewBounds(true);
             networkImageView.setScaleType(ImageView.ScaleType.FIT_XY);
@@ -159,14 +170,71 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         public void setData(NetworkImageView view, GISResult data){
-            if(data != null) {
-                mViewSwitcherManager.showGrid();
-                view.setImageUrl(data.getTbUrl(), mImageLoader);
+            if(view != null) {
+                if (data != null) {
+                    view.setImageUrl(data.getTbUrl(), mImageLoader);
+
+                    //TODO I'd want to do this when the first imageview is set, but for some reason that
+                    //TODO doesnt work
+                    mViewSwitcherManager.showGrid();
+
+                    if (!resultCountAdjusted) {
+                        adjustResultCount();
+                    }
+
+                } else {
+                    if (mSearchSession.getResultCount() == 0) {
+                        mViewSwitcherManager.showMessage(String.format(mContext.getResources().getString(R.string.no_search_results), mSearchSession.getQuery()));
+                    } else {
+                        //TODO Have a second grayed line with the actual error description.
+                        mViewSwitcherManager.showMessage(R.string.search_error);
+                    }
+                }
             }
-            else {
-                //TODO Have a second grayed line with the actual error description.
-                mViewSwitcherManager.showMessage(R.string.search_error);
-            }
+        }
+    }
+
+    private void adjustResultCount(){
+        resultCountAdjusted = true;
+        actualResultCount = mSearchSession.getResultCount();
+
+        if(actualResultCount < MAX_SEARCH_RESULTS){
+            //If we have more than 64 results, let's just show 64 results because that's the max that
+            //Google Search allows
+            displayedResultCount = actualResultCount;
+            notifyDataSetChanged();
+        }
+    }
+
+    public class FadeInNetworkImageView extends NetworkImageView {
+        private static final int FADE_IN_TIME_MS = 250;
+
+        public FadeInNetworkImageView(Context context) {
+            super(context);
+        }
+
+        public FadeInNetworkImageView(Context context, AttributeSet attrs) {
+            super(context, attrs);
+        }
+
+        public FadeInNetworkImageView(Context context, AttributeSet attrs, int defStyle) {
+            super(context, attrs, defStyle);
+        }
+
+        @Override
+        public void setImageBitmap(Bitmap bm) {
+            //For the very first loaded bitmap, we turn off the progressbar.
+            //This is a no-op subsequently (the ViewFlipper takes care of this)
+            //TODO For some reason, this wont work! So I am dismissing the progress bar earlier
+            //mViewSwitcherManager.showGrid();
+
+            TransitionDrawable td = new TransitionDrawable(new Drawable[]{
+                    new ColorDrawable(android.R.color.transparent),
+                    new BitmapDrawable(getContext().getResources(), bm)
+            });
+
+            setImageDrawable(td);
+            td.startTransition(FADE_IN_TIME_MS);
         }
     }
 }

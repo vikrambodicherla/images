@@ -45,7 +45,6 @@ public class GISService {
     private final String mLocalIpAddress;
 
     private final String mQuery;
-    private Integer mEstimatedResultCount;
 
     private final ConcurrentHashMap<String, Future<GISResponse>> mInFlightRequests = new ConcurrentHashMap<>();
 

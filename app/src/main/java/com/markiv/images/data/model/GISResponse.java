@@ -24,15 +24,7 @@ public class GISResponse {
     }
 
     public class Cursor {
-        public int currentPageIndex;
         public int estimatedResultCount;
-        public String moreResultsUrl;
-        public List<Page> pages;
-    }
-
-    public class Page {
-        public String label;
-        public String start;
     }
 
     public boolean isSuccess(){

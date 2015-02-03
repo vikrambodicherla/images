@@ -25,6 +25,9 @@ public class GISSession {
 
     private final GISCache mCache;
 
+    private int mResultCount = -1;
+
+
     GISSession(GISService searchService, String query, int pageSize) {
         mQuery = query;
         mSearchService = searchService;
@@ -54,6 +57,15 @@ public class GISSession {
 
     public void persist(){
         //TODO Implement
+    }
+
+    /*
+     * This method returns a valid value only after the first call is done successfully.
+     * //TODO This is hacky. This call should always work - either return a valid value or notify the
+     * //TODO caller that a value is not yet available
+     */
+    public int getResultCount(){
+        return mResultCount;
     }
 
     public void kill(){
@@ -96,9 +108,12 @@ public class GISSession {
     private void processResponse(GISResponse response){
         if (response.isSuccess()) {
             mCache.batchPut(response.start, response.getSearchResults());
+            if(mResultCount == -1){
+                mResultCount = response.responseData.cursor.estimatedResultCount;
+            }
+
             if(response.start == 0){
-                //This is the first page. Let's persist it to disk, so as to enable faster loading
-                //in case the user searches again
+                //TODO Optimization: persist this to disk to enable faster loading subsequently
             }
         }
     }

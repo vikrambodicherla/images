@@ -37,14 +37,6 @@ public class SearchActivity extends ActionBarActivity {
         }
     }
 
-    @Override
-    protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        if(!handleIfSearchIntent(intent)){
-            finish();
-        }
-    }
-
     private boolean handleIfSearchIntent(Intent intent){
         if(intent != null && Intent.ACTION_SEARCH.equals(intent.getAction())) {
             String query = getIntent().getStringExtra(SearchManager.QUERY);
@@ -81,7 +73,6 @@ public class SearchActivity extends ActionBarActivity {
 
         //Preemptively set this with a delay, let the adapter unset it
         //TODO Hacky
-        mViewSwitcherManager.showMessageDelayed(String.format(getResources().getString(R.string.no_search_results), query), 1000);
     }
 
     @Override
@@ -91,19 +82,6 @@ public class SearchActivity extends ActionBarActivity {
         final MenuItem searchItem = menu.findItem(R.id.ic_search);
         SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
         searchView.setSearchableInfo(((SearchManager) getSystemService(Context.SEARCH_SERVICE)).getSearchableInfo(getComponentName()));
-
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-            @Override
-            public boolean onQueryTextSubmit(String s) {
-                MenuItemCompat.collapseActionView(searchItem);
-                return false;
-            }
-
-            @Override
-            public boolean onQueryTextChange(String s) {
-                return false;
-            }
-        });
 
         return true;
     }
@@ -137,25 +115,16 @@ public class SearchActivity extends ActionBarActivity {
         }
 
         public void showGrid(){
-            mViewFlipper.setDisplayedChild(1);
+            mViewFlipper.setDisplayedChild(2);
         }
 
         public void showMessage(String message){
-            mViewFlipper.setDisplayedChild(0);
+            mViewFlipper.setDisplayedChild(1);
             mMessagesTextView.setText(message);
         }
 
         public void showMessage(int stringResId){
             showMessage(getResources().getString(stringResId));
-        }
-
-        public void showMessageDelayed(final String message, long delay){
-            mViewFlipper.postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    showMessage(message);
-                }
-            }, delay);
         }
     }
 }
