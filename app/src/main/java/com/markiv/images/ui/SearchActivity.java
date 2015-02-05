@@ -67,12 +67,9 @@ public class SearchActivity extends ActionBarActivity {
             }
 
             //TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen size
-            mGISSession = GISSession.newSession(query, 8);
+            mGISSession = GISSession.newSession(this, query, 8);
             mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mGISSession, mViewSwitcherManager));
         }
-
-        //Preemptively set this with a delay, let the adapter unset it
-        //TODO Hacky
     }
 
     @Override
