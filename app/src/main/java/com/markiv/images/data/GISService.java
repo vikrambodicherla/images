@@ -7,25 +7,19 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URLEncoder;
 import java.util.Enumeration;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.util.EntityUtils;
 
 import android.text.format.Formatter;
 import android.util.Log;
 
+import com.android.volley.NetworkResponse;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.HttpHeaderParser;
+import com.android.volley.toolbox.RequestFuture;
 import com.google.gson.GsonBuilder;
 import com.markiv.images.BuildConfig;
 import com.markiv.images.data.model.GISResponse;
@@ -40,24 +34,23 @@ import com.markiv.images.data.model.GISResponse;
  */
 public class GISService {
     private static final Object sREQUEST_LIST_LOCK = new Object();
+    private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
 
-    private final ExecutorService mExecutors = Executors.newFixedThreadPool(4);
-    private final HttpClient mHttpClient = new DefaultHttpClient();
-    private final String mLocalIpAddress;
+    private final ConcurrentHashMap<String, Future<GISResponse>> mInFlightRequests = new ConcurrentHashMap<>();
+    private final RequestQueue mRequestQueue;
 
     private final String mQuery;
 
-    private final ConcurrentHashMap<String, Future<GISResponse>> mInFlightRequests = new ConcurrentHashMap<>();
+    private final String mLocalIpAddress;
 
-    private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
-
-    public GISService(String query) {
+    public GISService(String query, RequestQueue requestQueue) {
         mQuery = query;
         mLocalIpAddress = getLocalIpAddress();
+        mRequestQueue = requestQueue;
     }
 
     public void shutdownNow() {
-        mExecutors.shutdownNow();
+        mRequestQueue.stop();
     }
 
     public Future<GISResponse> fetchPage(final int start, final int rsz) {
@@ -68,50 +61,11 @@ public class GISService {
             if (inFlightSearchResponseFuture != null) {
                 return inFlightSearchResponseFuture;
             } else {
-                GISGet get = new GISGet(mQuery, start, rsz);
-                final Future<GISResponse> searchResponseFuture = mExecutors.submit(get);
-
-                mInFlightRequests.put(requestIdentifier, searchResponseFuture);
-                return buildWrapperResultGetFuture(requestIdentifier, searchResponseFuture);
+                RequestFuture<GISResponse> future = buildNewRequest(start, rsz);
+                mInFlightRequests.put(requestIdentifier, future);
+                return future;
             }
         }
-    }
-
-    private Future<GISResponse> buildWrapperResultGetFuture(final String requestIdentifier,
-            final Future<GISResponse> searchResponseFuture) {
-        return new Future<GISResponse>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return searchResponseFuture.cancel(mayInterruptIfRunning);
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return searchResponseFuture.isCancelled();
-            }
-
-            @Override
-            public boolean isDone() {
-                return searchResponseFuture.isDone();
-            }
-
-            @Override
-            public GISResponse get() throws InterruptedException, ExecutionException {
-                synchronized (sREQUEST_LIST_LOCK) {
-                    mInFlightRequests.remove(requestIdentifier);
-                }
-                return searchResponseFuture.get();
-            }
-
-            @Override
-            public GISResponse get(long timeout, TimeUnit unit) throws InterruptedException,
-                    ExecutionException, TimeoutException {
-                synchronized (sREQUEST_LIST_LOCK) {
-                    mInFlightRequests.remove(requestIdentifier);
-                }
-                return searchResponseFuture.get(timeout, unit);
-            }
-        };
     }
 
     private String getRequestIdentifier(String query, int start, int rsz) {
@@ -127,55 +81,65 @@ public class GISService {
         return searchResponse;
     }
 
-    class GISGet implements Callable<GISResponse> {
+    class GISGetRequest extends Request<GISResponse> {
         final String mUrl;
 
         final String mQuery;
         final int mStart;
         final int mRsz;
+        final Response.Listener<GISResponse> mListener;
 
-        public GISGet(String query, int start, int rsz) {
-            mUrl = buildUrl(query, start, rsz);
+        GISGetRequest(String url, String query, int start, int rsz, Response.ErrorListener errorListener, Response.Listener<GISResponse> listener) {
+            super(Method.GET, url, errorListener);
 
+            mListener = listener;
+            mUrl = url;
             mQuery = query;
             mStart = start;
             mRsz = rsz;
         }
 
         @Override
-        public GISResponse call() throws Exception {
-            HttpGet get = new HttpGet(mUrl);
-            HttpResponse response = mHttpClient.execute(get);
-            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                String jsonString = EntityUtils.toString(response.getEntity());
-                GISResponse gisResponse = parse(jsonString, mQuery, mStart, mRsz);
-                return gisResponse;
+        protected Response<GISResponse> parseNetworkResponse(NetworkResponse response) {
+            try {
+                String json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
+                return Response.success(parse(json, mQuery, mStart, mRsz), HttpHeaderParser.parseCacheHeaders(response));
             }
-            else {
-                return null;
+            catch (UnsupportedEncodingException e){
+                return Response.error(new VolleyError(e));
             }
         }
 
-        public String buildUrl(String query, int start, int rsz) {
-            try {
-                return String.format(sSEARCH_QUERY_URL, URLEncoder.encode(query, "utf-8"),
-                        String.valueOf(start), String.valueOf(rsz), mLocalIpAddress);
-            } catch (UnsupportedEncodingException e) {
-                Log.e("GImageSearchService", "Encoding the query to utf-8 failed", e);
-                throw new RuntimeException(e);
+        @Override
+        protected void deliverResponse(GISResponse response) {
+            mListener.onResponse(response);
+            synchronized (sREQUEST_LIST_LOCK) {
+                mInFlightRequests.remove(getRequestIdentifier(mQuery, mStart, mRsz));
             }
         }
 
         @Override
         public boolean equals(Object o) {
-            return ((o != null) && (o instanceof GISGet))
-                    && ((GISGet) o).mUrl.equals(mUrl) && ((GISGet) o).mStart == mStart
-                    && ((GISGet) o).mRsz == mRsz;
+            return ((o != null) && (o instanceof GISGetRequest))
+                    && ((GISGetRequest) o).mUrl.equals(mUrl) && ((GISGetRequest) o).mStart == mStart
+                    && ((GISGetRequest) o).mRsz == mRsz;
         }
+    }
 
-        @Override
-        public String toString() {
-            return mUrl;
+    RequestFuture<GISResponse> buildNewRequest(final int start, final int rsz){
+        RequestFuture<GISResponse> future = RequestFuture.newFuture();
+        GISGetRequest gisGetRequest = new GISGetRequest(buildUrl(mQuery, start, rsz), mQuery, start, rsz, future, future);
+        mRequestQueue.add(gisGetRequest);
+        return future;
+    }
+
+    public String buildUrl(String query, int start, int rsz) {
+        try {
+            return String.format(sSEARCH_QUERY_URL, URLEncoder.encode(query, "utf-8"),
+                    String.valueOf(start), String.valueOf(rsz), mLocalIpAddress);
+        } catch (UnsupportedEncodingException e) {
+            Log.e("GImageSearchService", "Encoding the query to utf-8 failed", e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -199,7 +163,7 @@ public class GISService {
         return null;
     }
 
-    public static GISService newInstance(String query){
-        return new GISService(query);
+    public static GISService newInstance(String query, RequestQueue requestQueue){
+        return new GISService(query, requestQueue);
     }
 }

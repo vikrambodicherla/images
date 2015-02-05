@@ -6,6 +6,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import android.content.Context;
+
 import com.markiv.images.data.model.GISResponse;
 import com.markiv.images.data.model.GISResult;
 
@@ -123,7 +125,7 @@ public class GISSession {
     }
 
     //If we at any point need more options, we should convert this to a Builder
-    public static GISSession newSession(String query, int pageSize){
-        return new GISSession(GISService.newInstance(query), query, pageSize);
+    public static GISSession newSession(Context context, String query, int pageSize){
+        return new GISSession(GISService.newInstance(query, VolleyProvider.getInstance(context).getQueue()), query, pageSize);
     }
 }
