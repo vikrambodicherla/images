@@ -1,18 +1,18 @@
-package com.markiv.images.data.model;
+package com.markiv.gis.api.model;
 
 /**
  * An object representing a single search result
  * @author vikrambd
  * @since 1/20/15
  */
-public class GISResult {
+public class APIResult {
     private String titleNoFormatting;
 
     private String tbUrl;
     private int tbHeight;
     private int tbWidth;
 
-    public GISResult() {
+    public APIResult() {
     }
 
     public String getTitleNoFormatting() {
@@ -49,8 +49,8 @@ public class GISResult {
 
     @Override
     public boolean equals(Object o) {
-        if(o instanceof GISResult) {
-            GISResult other = (GISResult) o;
+        if(o instanceof APIResult) {
+            APIResult other = (APIResult) o;
             return titleNoFormatting != null && other.titleNoFormatting != null
                     && titleNoFormatting.equals(other.titleNoFormatting) &&
                     tbUrl != null && other.tbUrl != null && tbUrl.equals(other.tbUrl) &&

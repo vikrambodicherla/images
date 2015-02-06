@@ -6,14 +6,8 @@ import java.util.concurrent.Future;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Bitmap;
 import android.graphics.Point;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.TransitionDrawable;
 import android.os.AsyncTask;
-import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Display;
 import android.view.View;
@@ -24,24 +18,20 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 
-import com.android.volley.toolbox.ImageLoader;
-import com.android.volley.toolbox.NetworkImageView;
-import com.markiv.images.BuildConfig;
+import com.markiv.gis.GISService;
+import com.markiv.gis.image.GISImageView;
 import com.markiv.images.R;
-import com.markiv.images.data.GISSession;
-import com.markiv.images.data.VolleyProvider;
-import com.markiv.images.data.model.GISResult;
 
 /**
 * @author vikrambd
 * @since 1/25/15
 */
 class GImageSearchAdapter extends BaseAdapter {
-    private static final int MAX_SEARCH_RESULTS = BuildConfig.MAX_SEARCH_RESULTS;
+    private static final int MAX_SEARCH_RESULTS = 64;
 
     private final Context mContext;
-    private final GISSession mSearchSession;
-    private final ImageLoader mImageLoader;
+    private final GISService.Session mSearchSession;
+    private final GISService.GISImageViewFactory mImageViewFactory;
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
@@ -55,10 +45,11 @@ class GImageSearchAdapter extends BaseAdapter {
     private int actualResultCount = -1;
     private int displayedResultCount = MAX_SEARCH_RESULTS;
 
-    public GImageSearchAdapter(Context context, GISSession searchSession, SearchActivity.ViewFlipperManager viewSwitcherManager) {
+    public GImageSearchAdapter(Context context, GISService.Session searchSession, GISService.GISImageViewFactory imageViewFactory, SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;
-        mImageLoader = new ImageLoader(VolleyProvider.getInstance(context).getImageRequestQueue(), LruBitmapCache.getInstance(context));
+        mImageViewFactory = imageViewFactory;
+
         mViewSwitcherManager = viewSwitcherManager;
 
         setupCellLayoutParams();
@@ -94,15 +85,13 @@ class GImageSearchAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        NetworkImageView networkImageView;
+        GISImageView networkImageView;
         if(convertView == null){
-            networkImageView = new FadeInNetworkImageView(mContext);
+            networkImageView = mImageViewFactory.newImageView();
             networkImageView.setLayoutParams(mCellLayoutParams);
-            networkImageView.setAdjustViewBounds(true);
-            networkImageView.setScaleType(ImageView.ScaleType.FIT_XY);
         }
         else {
-            networkImageView = (NetworkImageView) convertView;
+            networkImageView = (GISImageView) convertView;
         }
 
         ViewSetter viewSetter = (ViewSetter) networkImageView.getTag();
@@ -120,13 +109,13 @@ class GImageSearchAdapter extends BaseAdapter {
         return networkImageView;
     }
 
-    private class ViewSetter extends AsyncTask<Void, Void, GISResult> {
-        private WeakReference<NetworkImageView> mViewWeakReference;
+    private class ViewSetter extends AsyncTask<Void, Void, GISService.Result> {
+        private WeakReference<GISImageView> mViewWeakReference;
         private int mPosition;
-        private Future<GISResult> mResultFuture;
+        private Future<GISService.Result> mResultFuture;
 
-        private ViewSetter(NetworkImageView view, int position) {
-            mViewWeakReference = new WeakReference<NetworkImageView>(view);
+        private ViewSetter(GISImageView view, int position) {
+            mViewWeakReference = new WeakReference<GISImageView>(view);
             mPosition = position;
         }
 
@@ -147,7 +136,7 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected GISResult doInBackground(Void... params) {
+        protected GISService.Result doInBackground(Void... params) {
             if(!isCancelled()) {
                 try {
                     //TODO We should ideally be asking for images of the required size, but the GISService doesn't provide for this
@@ -164,16 +153,16 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected void onPostExecute(GISResult gisResult) {
+        protected void onPostExecute(GISService.Result gisResult) {
             if(!isCancelled()) {
                 setData(mViewWeakReference.get(), gisResult);
             }
         }
 
-        public void setData(NetworkImageView view, GISResult data){
+        public void setData(GISImageView view, GISService.Result data){
             if(view != null) {
                 if (data != null) {
-                    view.setImageUrl(data.getTbUrl(), mImageLoader);
+                    view.setGISResult(data);
 
                     //TODO I'd want to do this when the first imageview is set, but for some reason that
                     //TODO doesnt work
@@ -204,38 +193,6 @@ class GImageSearchAdapter extends BaseAdapter {
             //Google Search allows
             displayedResultCount = actualResultCount;
             notifyDataSetChanged();
-        }
-    }
-
-    public class FadeInNetworkImageView extends NetworkImageView {
-        private static final int FADE_IN_TIME_MS = 250;
-
-        public FadeInNetworkImageView(Context context) {
-            super(context);
-        }
-
-        public FadeInNetworkImageView(Context context, AttributeSet attrs) {
-            super(context, attrs);
-        }
-
-        public FadeInNetworkImageView(Context context, AttributeSet attrs, int defStyle) {
-            super(context, attrs, defStyle);
-        }
-
-        @Override
-        public void setImageBitmap(Bitmap bm) {
-            //For the very first loaded bitmap, we turn off the progressbar.
-            //This is a no-op subsequently (the ViewFlipper takes care of this)
-            //TODO For some reason, this wont work! So I am dismissing the progress bar earlier
-            //mViewSwitcherManager.showGrid();
-
-            TransitionDrawable td = new TransitionDrawable(new Drawable[]{
-                    new ColorDrawable(android.R.color.transparent),
-                    new BitmapDrawable(getContext().getResources(), bm)
-            });
-
-            setImageDrawable(td);
-            td.startTransition(FADE_IN_TIME_MS);
         }
     }
 }

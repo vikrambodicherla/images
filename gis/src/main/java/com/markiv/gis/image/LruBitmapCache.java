@@ -1,4 +1,4 @@
-package com.markiv.images.ui;
+package com.markiv.gis.image;
 
 import android.content.Context;
 import android.graphics.Bitmap;

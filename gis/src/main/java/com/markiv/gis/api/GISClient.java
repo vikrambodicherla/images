@@ -1,5 +1,5 @@
 
-package com.markiv.images.data;
+package com.markiv.gis.api;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
@@ -16,13 +16,12 @@ import android.util.Log;
 import com.android.volley.NetworkResponse;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.android.volley.toolbox.RequestFuture;
 import com.google.gson.GsonBuilder;
-import com.markiv.images.BuildConfig;
-import com.markiv.images.data.model.GISResponse;
+import com.markiv.gis.BuildConfig;
+import com.markiv.gis.api.model.APIResponse;
 
 /**
  * The Google Image Search Service API. This service lets you fetch a page via fetchPage.
@@ -32,18 +31,18 @@ import com.markiv.images.data.model.GISResponse;
  * @author vikrambd
  * @since 1/20/15 //TODO Evaluate if caching is useful. Volley gives us free caching.
  */
-public class GISService {
+class GISClient {
     private static final Object sREQUEST_LIST_LOCK = new Object();
     private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
 
-    private final ConcurrentHashMap<String, Future<GISResponse>> mInFlightRequests = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Future<APIResponse>> mInFlightRequests = new ConcurrentHashMap<>();
     private final RequestQueue mRequestQueue;
 
     private final String mQuery;
 
     private final String mLocalIpAddress;
 
-    public GISService(String query, RequestQueue requestQueue) {
+    public GISClient(String query, RequestQueue requestQueue) {
         mQuery = query;
         mLocalIpAddress = getLocalIpAddress();
         mRequestQueue = requestQueue;
@@ -53,15 +52,15 @@ public class GISService {
         mRequestQueue.stop();
     }
 
-    public Future<GISResponse> fetchPage(final int start, final int rsz) {
+    public Future<APIResponse> fetchPage(final int start, final int rsz) {
         synchronized (sREQUEST_LIST_LOCK) {
             final String requestIdentifier = getRequestIdentifier(mQuery, start, rsz);
-            Future<GISResponse> inFlightSearchResponseFuture = mInFlightRequests
+            Future<APIResponse> inFlightSearchResponseFuture = mInFlightRequests
                     .get(requestIdentifier);
             if (inFlightSearchResponseFuture != null) {
                 return inFlightSearchResponseFuture;
             } else {
-                RequestFuture<GISResponse> future = buildNewRequest(start, rsz);
+                RequestFuture<APIResponse> future = buildNewRequest(start, rsz);
                 mInFlightRequests.put(requestIdentifier, future);
                 return future;
             }
@@ -72,24 +71,24 @@ public class GISService {
         return query + "S:" + String.valueOf(start) + "R:" + String.valueOf(rsz);
     }
 
-    GISResponse parse(String jsonString, String query, int start, int rsz) {
-        GISResponse searchResponse = new GsonBuilder().create().fromJson(jsonString,
-                GISResponse.class);
-        searchResponse.query = query;
-        searchResponse.start = start;
-        searchResponse.rsz = rsz;
-        return searchResponse;
+    APIResponse parse(String jsonString, String query, int start, int rsz) {
+        APIResponse searchAPIResponse = new GsonBuilder().create().fromJson(jsonString,
+                APIResponse.class);
+        searchAPIResponse.query = query;
+        searchAPIResponse.start = start;
+        searchAPIResponse.rsz = rsz;
+        return searchAPIResponse;
     }
 
-    class GISGetRequest extends Request<GISResponse> {
+    class GISGetRequest extends Request<APIResponse> {
         final String mUrl;
 
         final String mQuery;
         final int mStart;
         final int mRsz;
-        final Response.Listener<GISResponse> mListener;
+        final com.android.volley.Response.Listener<APIResponse> mListener;
 
-        GISGetRequest(String url, String query, int start, int rsz, Response.ErrorListener errorListener, Response.Listener<GISResponse> listener) {
+        GISGetRequest(String url, String query, int start, int rsz, com.android.volley.Response.ErrorListener errorListener, com.android.volley.Response.Listener<APIResponse> listener) {
             super(Method.GET, url, errorListener);
 
             mListener = listener;
@@ -100,19 +99,19 @@ public class GISService {
         }
 
         @Override
-        protected Response<GISResponse> parseNetworkResponse(NetworkResponse response) {
+        protected com.android.volley.Response parseNetworkResponse(NetworkResponse response) {
             try {
                 String json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
-                return Response.success(parse(json, mQuery, mStart, mRsz), HttpHeaderParser.parseCacheHeaders(response));
+                return com.android.volley.Response.success(parse(json, mQuery, mStart, mRsz), HttpHeaderParser.parseCacheHeaders(response));
             }
             catch (UnsupportedEncodingException e){
-                return Response.error(new VolleyError(e));
+                return com.android.volley.Response.error(new VolleyError(e));
             }
         }
 
         @Override
-        protected void deliverResponse(GISResponse response) {
-            mListener.onResponse(response);
+        protected void deliverResponse(APIResponse APIResponse) {
+            mListener.onResponse(APIResponse);
             synchronized (sREQUEST_LIST_LOCK) {
                 mInFlightRequests.remove(getRequestIdentifier(mQuery, mStart, mRsz));
             }
@@ -126,8 +125,8 @@ public class GISService {
         }
     }
 
-    RequestFuture<GISResponse> buildNewRequest(final int start, final int rsz){
-        RequestFuture<GISResponse> future = RequestFuture.newFuture();
+    RequestFuture<APIResponse> buildNewRequest(final int start, final int rsz){
+        RequestFuture<APIResponse> future = RequestFuture.newFuture();
         GISGetRequest gisGetRequest = new GISGetRequest(buildUrl(mQuery, start, rsz), mQuery, start, rsz, future, future);
         mRequestQueue.add(gisGetRequest);
         return future;
@@ -163,7 +162,7 @@ public class GISService {
         return null;
     }
 
-    public static GISService newInstance(String query, RequestQueue requestQueue){
-        return new GISService(query, requestQueue);
+    public static GISClient newInstance(String query, RequestQueue requestQueue){
+        return new GISClient(query, requestQueue);
     }
 }
