@@ -11,9 +11,6 @@ android {
         targetSdkVersion 21
         versionCode 1
         versionName "1.0"
-
-       buildConfigField "String", "GOOGLE_SEARCH_API", "\"https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1\$s&start=%2\$s&rsz=%3\$s&userip=%4\$s\""
-       buildConfigField "int", "MAX_SEARCH_RESULTS", "64"
     }
     buildTypes {
         release {
@@ -26,10 +23,5 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:21.0.3'
-    compile 'com.google.code.gson:gson:2.2.4'
-    compile 'com.mcxiaoke.volley:library:1.0.0'
-
-    androidTestCompile 'org.mockito:mockito-core:1.9.5'
-    androidTestCompile 'org.robolectric:robolectric:2.3'
-    androidTestCompile 'junit:junit:4.11'
+    compile project(':gis')
 }

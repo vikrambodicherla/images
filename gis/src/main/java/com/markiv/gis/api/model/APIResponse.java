@@ -1,4 +1,4 @@
-package com.markiv.images.data.model;
+package com.markiv.gis.api.model;
 
 import java.util.Iterator;
 import java.util.List;
@@ -8,7 +8,7 @@ import java.util.List;
  * @author vikrambd
  * @since 1/20/15
  */
-public class GISResponse {
+public class APIResponse {
     //These fields are not a part of the response
     public transient String query;
     public transient int start;
@@ -19,7 +19,7 @@ public class GISResponse {
     public int responseStatus;
 
     public class ResponseData {
-        public List<GISResult> results;
+        public List<APIResult> mAPIResults;
         public Cursor cursor;
     }
 
@@ -35,9 +35,9 @@ public class GISResponse {
         return responseDetails;
     }
 
-    public Iterator<GISResult> getSearchResults() {
-        if(responseData.results != null){
-            return responseData.results.iterator();
+    public Iterator<APIResult> getSearchResults() {
+        if(responseData.mAPIResults != null){
+            return responseData.mAPIResults.iterator();
         }
         else {
             return null;
