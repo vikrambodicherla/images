@@ -19,7 +19,7 @@ public class APIResponse {
     public int responseStatus;
 
     public class ResponseData {
-        public List<APIResult> mAPIResults;
+        public List<APIResult> results;
         public Cursor cursor;
     }
 
@@ -36,8 +36,8 @@ public class APIResponse {
     }
 
     public Iterator<APIResult> getSearchResults() {
-        if(responseData.mAPIResults != null){
-            return responseData.mAPIResults.iterator();
+        if(responseData.results != null){
+            return responseData.results.iterator();
         }
         else {
             return null;
