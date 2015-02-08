@@ -110,10 +110,10 @@ class GImageSearchAdapter extends BaseAdapter {
         return networkImageView;
     }
 
-    private class ViewSetter extends AsyncTask<Void, Void, APIResult> {
+    private class ViewSetter extends AsyncTask<Void, Void, SearchSession.Result> {
         private WeakReference<GISImageView> mViewWeakReference;
         private int mPosition;
-        private Future<APIResult> mResultFuture;
+        private Future<SearchSession.Result> mResultFuture;
 
         private ViewSetter(GISImageView view, int position) {
             mViewWeakReference = new WeakReference<GISImageView>(view);
@@ -137,7 +137,7 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected APIResult doInBackground(Void... params) {
+        protected SearchSession.Result doInBackground(Void... params) {
             if(!isCancelled()) {
                 try {
                     //TODO We should ideally be asking for images of the required size, but the GISService doesn't provide for this
@@ -154,13 +154,13 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected void onPostExecute(APIResult gisResult) {
+        protected void onPostExecute(SearchSession.Result gisResult) {
             if(!isCancelled()) {
                 setData(mViewWeakReference.get(), gisResult);
             }
         }
 
-        public void setData(GISImageView view, APIResult data){
+        public void setData(GISImageView view, SearchSession.Result data){
             if(view != null) {
                 if (data != null) {
                     view.setGISResult(data);

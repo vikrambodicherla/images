@@ -50,13 +50,66 @@ public class SearchSession {
         return mQuery;
     }
 
-    public Future<APIResult> fetchResult(int pos) {
-        Future<APIResult> cachedResult = mCache.getWrappedInFuture(pos);
+    public Future<Result> fetchResult(final int pos) {
+        final APIResult cachedResult = mCache.get(pos);
         if(cachedResult != null){
-            return cachedResult;
+            return new Future<Result>() {
+                @Override
+                public boolean cancel(boolean mayInterruptIfRunning) {
+                    return false;
+                }
+
+                @Override
+                public boolean isCancelled() {
+                    return false;
+                }
+
+                @Override
+                public boolean isDone() {
+                    return true;
+                }
+
+                @Override
+                public Result get() throws InterruptedException, ExecutionException {
+                    return new Result(cachedResult);
+                }
+
+                @Override
+                public Result get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                    return new Result(cachedResult);
+                }
+            };
         }
         else {
-            return buildWrapperResultGetFuture(pos, mSearchService.fetchPage((pos/mPageSize) * mPageSize, mPageSize));
+            final Future<APIResponse> apiResponseFuture = mSearchService.fetchPage((pos/mPageSize) * mPageSize, mPageSize);
+            return new Future<Result>() {
+                @Override
+                public boolean cancel(boolean mayInterruptIfRunning) {
+                    return apiResponseFuture.cancel(mayInterruptIfRunning);
+                }
+
+                @Override
+                public boolean isCancelled() {
+                    return apiResponseFuture.isCancelled();
+                }
+
+                @Override
+                public boolean isDone() {
+                    return apiResponseFuture.isDone();
+                }
+
+                @Override
+                public Result get() throws InterruptedException, ExecutionException {
+                    persist(apiResponseFuture.get());
+                    return new Result(mCache.get(pos));
+                }
+
+                @Override
+                public Result get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+                    apiResponseFuture.get(timeout, unit);
+                    return new Result(mCache.get(pos));
+                }
+            };
         }
     }
 
@@ -78,49 +131,18 @@ public class SearchSession {
         mSearchService.shutdownNow();
     }
 
-    private Future<APIResult> buildWrapperResultGetFuture(final int position, final Future<APIResponse> searchResponseFuture){
-        return new Future<APIResult>() {
-            @Override
-            public boolean cancel(boolean mayInterruptIfRunning) {
-                return searchResponseFuture.cancel(mayInterruptIfRunning);
-            }
-
-            @Override
-            public boolean isCancelled() {
-                return searchResponseFuture.isCancelled();
-            }
-
-            @Override
-            public boolean isDone() {
-                //Processing time negligent compared to the network request
-                return searchResponseFuture.isDone();
-            }
-
-            @Override
-            public APIResult get() throws InterruptedException, ExecutionException {
-                APIResponse searchAPIResponse = searchResponseFuture.get();
-                processResponse(searchAPIResponse);
-                return mCache.get(position);
-            }
-
-            @Override
-            public APIResult get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                return get();
-            }
-        };
-    }
-
-    private void processResponse(APIResponse APIResponse){
-        if (APIResponse.isSuccess()) {
-            mCache.batchPut(APIResponse.start, APIResponse.getSearchResults());
+    private void persist(APIResponse apiResponse){
+        if (apiResponse.isSuccess()) {
+            mCache.batchPut(apiResponse.start, apiResponse.getSearchResults());
             if(mResultCount == -1){
-                mResultCount = APIResponse.responseData.cursor.estimatedResultCount;
+                mResultCount = apiResponse.responseData.cursor.estimatedResultCount;
             }
 
-            if(APIResponse.start == 0){
+            if(apiResponse.start == 0){
                 //TODO Optimization: persist this to disk to enable faster loading subsequently
             }
         }
+
     }
 
     private void persistPage(APIResponse APIResponse){
@@ -186,6 +208,22 @@ public class SearchSession {
 
         public synchronized void clear(){
             mImageSearchResults.evictAll();
+        }
+    }
+
+    public static class Result {
+        public APIResult mAPIResult;
+
+        public Result(APIResult APIResult) {
+            mAPIResult = APIResult;
+        }
+
+        public String getTitle(){
+            return mAPIResult.getTitleNoFormatting();
+        }
+
+        public String getUrl(){
+            return mAPIResult.getTbUrl();
         }
     }
 }
