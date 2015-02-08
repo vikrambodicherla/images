@@ -17,6 +17,7 @@ import android.widget.TextView;
 import android.widget.ViewFlipper;
 
 import com.markiv.gis.GISService;
+import com.markiv.gis.SearchSession;
 import com.markiv.images.R;
 import com.markiv.images.ui.history.SearchHistoryManager;
 
@@ -25,7 +26,7 @@ public class SearchActivity extends ActionBarActivity {
     private ViewFlipperManager mViewSwitcherManager;
 
     private GISService mGISService;
-    private GISService.Session mActiveSession;
+    private SearchSession mActiveSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

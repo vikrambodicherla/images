@@ -16,9 +16,9 @@ import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
-import android.widget.ImageView;
 
 import com.markiv.gis.GISService;
+import com.markiv.gis.SearchSession;
 import com.markiv.gis.image.GISImageView;
 import com.markiv.images.R;
 
@@ -30,7 +30,7 @@ class GImageSearchAdapter extends BaseAdapter {
     private static final int MAX_SEARCH_RESULTS = 64;
 
     private final Context mContext;
-    private final GISService.Session mSearchSession;
+    private final SearchSession mSearchSession;
     private final GISService.GISImageViewFactory mImageViewFactory;
 
     private AbsListView.LayoutParams mCellLayoutParams;
@@ -45,7 +45,7 @@ class GImageSearchAdapter extends BaseAdapter {
     private int actualResultCount = -1;
     private int displayedResultCount = MAX_SEARCH_RESULTS;
 
-    public GImageSearchAdapter(Context context, GISService.Session searchSession, GISService.GISImageViewFactory imageViewFactory, SearchActivity.ViewFlipperManager viewSwitcherManager) {
+    public GImageSearchAdapter(Context context, SearchSession searchSession, GISService.GISImageViewFactory imageViewFactory, SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;
         mImageViewFactory = imageViewFactory;
@@ -109,10 +109,12 @@ class GImageSearchAdapter extends BaseAdapter {
         return networkImageView;
     }
 
-    private class ViewSetter extends AsyncTask<Void, Void, GISService.Result> {
+    private class ViewSetter extends AsyncTask<Void, Void, SearchSession.Result> {
         private WeakReference<GISImageView> mViewWeakReference;
         private int mPosition;
-        private Future<GISService.Result> mResultFuture;
+        private Future<SearchSession.Result> mResultFuture;
+
+        private String mSearchFailedError = null;
 
         private ViewSetter(GISImageView view, int position) {
             mViewWeakReference = new WeakReference<GISImageView>(view);
@@ -136,7 +138,7 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected GISService.Result doInBackground(Void... params) {
+        protected SearchSession.Result doInBackground(Void... params) {
             if(!isCancelled()) {
                 try {
                     //TODO We should ideally be asking for images of the required size, but the GISService doesn't provide for this
@@ -146,40 +148,47 @@ class GImageSearchAdapter extends BaseAdapter {
                     Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
 
                 } catch (ExecutionException e) {
-                    Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
+                    if(e instanceof SearchSession.SearchFailedException){
+                        mSearchFailedError = e.getMessage();
+                    }
                 }
             }
             return null;
         }
 
         @Override
-        protected void onPostExecute(GISService.Result gisResult) {
+        protected void onPostExecute(SearchSession.Result gisResult) {
             if(!isCancelled()) {
                 setData(mViewWeakReference.get(), gisResult);
             }
         }
 
-        public void setData(GISImageView view, GISService.Result data){
-            if(view != null) {
+        public void setData(GISImageView view, SearchSession.Result data){
+            if (view != null) {
                 if (data != null) {
                     view.setGISResult(data);
 
-                    //TODO I'd want to do this when the first imageview is set, but for some reason that
-                    //TODO doesnt work
+                    // TODO I'd want to do this when the first imageview is set, but for some reason
+                    // that
+                    // TODO doesnt work
                     mViewSwitcherManager.showGrid();
 
                     if (!resultCountAdjusted) {
                         adjustResultCount();
                     }
 
-                } else {
-                    if (mSearchSession.getResultCount() == 0) {
-                        mViewSwitcherManager.showMessage(String.format(mContext.getResources().getString(R.string.no_search_results), mSearchSession.getQuery()));
-                    } else {
-                        //TODO Have a second grayed line with the actual error description.
-                        mViewSwitcherManager.showMessage(R.string.search_error);
-                    }
                 }
+                else if(mSearchFailedError != null){
+                    mViewSwitcherManager.showMessage(mSearchFailedError);
+                }
+                else if (mSearchSession.getResultCount() == 0) {
+                    mViewSwitcherManager.showMessage(String.format(mContext.getResources()
+                            .getString(R.string.no_search_results), mSearchSession.getQuery()));
+                } else {
+                    // Generic error message
+                    mViewSwitcherManager.showMessage(R.string.search_error);
+                }
+
             }
         }
     }

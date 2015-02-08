@@ -31,7 +31,7 @@ import com.markiv.gis.api.model.APIResponse;
  * @author vikrambd
  * @since 1/20/15 //TODO Evaluate if caching is useful. Volley gives us free caching.
  */
-class GISClient {
+public class GISClient {
     private static final Object sREQUEST_LIST_LOCK = new Object();
     private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
 

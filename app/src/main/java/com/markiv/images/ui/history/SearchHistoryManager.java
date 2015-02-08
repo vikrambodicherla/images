@@ -1,11 +1,11 @@
 package com.markiv.images.ui.history;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import android.content.Context;
 import android.content.SharedPreferences;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
 
 /**
  * @author vikrambd
@@ -25,12 +25,13 @@ public class SearchHistoryManager {
     }
 
     public void recordSearch(String query){
-        //TODO We are losing search history order!
         Set<String> searchSet = mSharedPreferences.getStringSet(KEY_SEARCH_TERM_SET, null);
         if(searchSet == null){
-            searchSet = new HashSet<>();
+            searchSet = new LinkedHashSet<>();
         }
         searchSet.add(query);
         mSharedPreferences.edit().putStringSet(KEY_SEARCH_TERM_SET, searchSet).commit();
     }
+
+
 }
