@@ -1,5 +1,5 @@
 
-package com.markiv.gis.api;
+package com.markiv.gis;
 
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
@@ -10,6 +10,8 @@ import java.util.concurrent.TimeoutException;
 import android.content.Context;
 import android.support.v4.util.LruCache;
 
+import com.markiv.gis.api.GISClient;
+import com.markiv.gis.api.VolleyProvider;
 import com.markiv.gis.api.model.APIResponse;
 import com.markiv.gis.api.model.APIResult;
 
