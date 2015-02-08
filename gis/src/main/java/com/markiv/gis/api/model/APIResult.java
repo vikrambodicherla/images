@@ -60,4 +60,9 @@ public class APIResult {
             return false;
         }
     }
+
+    @Override
+    public String toString() {
+        return String.valueOf(titleNoFormatting) + ": " + String.valueOf(tbUrl);
+    }
 }

@@ -66,6 +66,8 @@ class GImageSearchAdapter extends BaseAdapter {
 
         final int cellWidth = (screenWidth - 4 * gridHorizontalSpacing)/3;
         mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, GridView.AUTO_FIT);
+
+        Log.d("GImageSearchAdapter", cellWidth + "");
     }
 
     @Override
@@ -89,6 +91,8 @@ class GImageSearchAdapter extends BaseAdapter {
         if(convertView == null){
             networkImageView = mImageViewFactory.newImageView();
             networkImageView.setLayoutParams(mCellLayoutParams);
+            networkImageView.setDefaultImageResId(R.drawable.ic_launcher);
+            networkImageView.setErrorImageResId(R.drawable.ic_launcher);
         }
         else {
             networkImageView = (GISImageView) convertView;

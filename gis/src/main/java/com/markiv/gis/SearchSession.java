@@ -204,6 +204,11 @@ public class SearchSession {
         public String getUrl() {
             return mAPIResult.getTbUrl();
         }
+
+        @Override
+        public String toString() {
+            return mAPIResult.toString();
+        }
     }
 
     public class SearchFailedException extends ExecutionException {
