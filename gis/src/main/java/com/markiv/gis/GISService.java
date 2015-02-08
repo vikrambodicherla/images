@@ -4,7 +4,6 @@ import android.content.Context;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.markiv.gis.api.VolleyProvider;
-import com.markiv.gis.api.model.APIResult;
 import com.markiv.gis.image.GISImageView;
 import com.markiv.gis.image.LruBitmapCache;
 
@@ -29,22 +28,6 @@ public class GISService {
 
     public GISImageViewFactory getImageViewFactory(){
         return mImageViewFactory;
-    }
-
-    public class Result {
-        private final APIResult mAPIResult;
-
-        private Result(APIResult apiResult){
-            mAPIResult = apiResult;
-        }
-
-        public String getTitle(){
-            return mAPIResult.getTitleNoFormatting();
-        }
-
-        public String getUrl(){
-            return mAPIResult.getTbUrl();
-        }
     }
 
     public class GISImageViewFactory {
