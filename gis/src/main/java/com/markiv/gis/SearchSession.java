@@ -100,21 +100,27 @@ public class SearchSession {
 
                 @Override
                 public Result get() throws InterruptedException, ExecutionException {
-                    persist(apiResponseFuture.get());
+                    try {
+                        processResponse(apiResponseFuture.get());
+                    }
+                    catch (SearchFailedException e){
+                        throw new ExecutionException(e);
+                    }
                     return new Result(mCache.get(pos));
                 }
 
                 @Override
                 public Result get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                    apiResponseFuture.get(timeout, unit);
+                    try {
+                        processResponse(apiResponseFuture.get(timeout, unit));
+                    }
+                    catch (SearchFailedException e){
+                        throw new ExecutionException(e);
+                    }
                     return new Result(mCache.get(pos));
                 }
             };
         }
-    }
-
-    public void persist(){
-        //TODO Implement
     }
 
     /*
@@ -131,7 +137,7 @@ public class SearchSession {
         mSearchService.shutdownNow();
     }
 
-    private void persist(APIResponse apiResponse){
+    private void processResponse(APIResponse apiResponse) throws SearchFailedException {
         if (apiResponse.isSuccess()) {
             mCache.batchPut(apiResponse.start, apiResponse.getSearchResults());
             if(mResultCount == -1){
@@ -142,7 +148,9 @@ public class SearchSession {
                 //TODO Optimization: persist this to disk to enable faster loading subsequently
             }
         }
-
+        else {
+            throw new SearchFailedException(apiResponse.getErrorMessage());
+        }
     }
 
     private void persistPage(APIResponse APIResponse){
@@ -224,6 +232,16 @@ public class SearchSession {
 
         public String getUrl(){
             return mAPIResult.getTbUrl();
+        }
+    }
+
+    public static class SearchFailedException extends Exception {
+        public SearchFailedException(Throwable cause){
+            super(cause);
+        }
+
+        public SearchFailedException(String error){
+            super(error);
         }
     }
 }

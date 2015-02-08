@@ -19,7 +19,6 @@ import android.widget.GridView;
 
 import com.markiv.gis.GISService;
 import com.markiv.gis.SearchSession;
-import com.markiv.gis.api.model.APIResult;
 import com.markiv.gis.image.GISImageView;
 import com.markiv.images.R;
 
@@ -115,6 +114,8 @@ class GImageSearchAdapter extends BaseAdapter {
         private int mPosition;
         private Future<SearchSession.Result> mResultFuture;
 
+        private String mError = null;
+
         private ViewSetter(GISImageView view, int position) {
             mViewWeakReference = new WeakReference<GISImageView>(view);
             mPosition = position;
@@ -145,9 +146,11 @@ class GImageSearchAdapter extends BaseAdapter {
                     return mResultFuture.get();
                 } catch (InterruptedException e) {
                     Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
-
                 } catch (ExecutionException e) {
                     Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
+                    if(e.getCause() instanceof SearchSession.SearchFailedException){
+                        mError = e.getCause().getMessage();
+                    }
                 }
             }
             return null;
@@ -161,26 +164,31 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         public void setData(GISImageView view, SearchSession.Result data){
-            if(view != null) {
+            if (view != null) {
                 if (data != null) {
                     view.setGISResult(data);
 
-                    //TODO I'd want to do this when the first imageview is set, but for some reason that
-                    //TODO doesnt work
+                    // TODO I'd want to do this when the first imageview is set, but for some reason
+                    // that
+                    // TODO doesnt work
                     mViewSwitcherManager.showGrid();
 
                     if (!resultCountAdjusted) {
                         adjustResultCount();
                     }
 
-                } else {
-                    if (mSearchSession.getResultCount() == 0) {
-                        mViewSwitcherManager.showMessage(String.format(mContext.getResources().getString(R.string.no_search_results), mSearchSession.getQuery()));
-                    } else {
-                        //TODO Have a second grayed line with the actual error description.
-                        mViewSwitcherManager.showMessage(R.string.search_error);
-                    }
+                } else if (mSearchSession.getResultCount() == 0) {
+                    mViewSwitcherManager.showMessage(String.format(mContext.getResources()
+                            .getString(R.string.no_search_results), mSearchSession.getQuery()));
                 }
+                else if(mError != null){
+                    mViewSwitcherManager.showMessage(mError);
+                }
+                else {
+                    // TODO Have a second grayed line with the actual error description.
+                    mViewSwitcherManager.showMessage(R.string.search_error);
+                }
+
             }
         }
     }
