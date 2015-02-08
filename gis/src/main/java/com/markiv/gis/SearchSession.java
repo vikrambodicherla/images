@@ -106,7 +106,7 @@ public class SearchSession {
                     catch (SearchFailedException e){
                         throw new ExecutionException(e);
                     }
-                    return new Result(mCache.get(pos));
+                    return mCache.get(pos) != null ? new Result(mCache.get(pos)) : null;
                 }
 
                 @Override
@@ -117,7 +117,7 @@ public class SearchSession {
                     catch (SearchFailedException e){
                         throw new ExecutionException(e);
                     }
-                    return new Result(mCache.get(pos));
+                    return mCache.get(pos) != null ? new Result(mCache.get(pos)) : null;
                 }
             };
         }

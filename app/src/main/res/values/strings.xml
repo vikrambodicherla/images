@@ -9,7 +9,7 @@
     <string name="search_hint">Image Search</string>
     <string name="welcome_message">Search by tapping on the search icon on the top</string>
     <string name="no_search_results">No search results found for %1$s</string>
-    <string name="search_error">Error connection to the server</string>
+    <string name="search_error">Search failed</string>
     <string name="search_history">Search History</string>
     <string name="title_activity_search">SearchActivity</string>
 

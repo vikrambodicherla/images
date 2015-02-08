@@ -181,14 +181,9 @@ class GImageSearchAdapter extends BaseAdapter {
                     mViewSwitcherManager.showMessage(String.format(mContext.getResources()
                             .getString(R.string.no_search_results), mSearchSession.getQuery()));
                 }
-                else if(mError != null){
-                    mViewSwitcherManager.showMessage(mError);
-                }
                 else {
-                    // TODO Have a second grayed line with the actual error description.
-                    mViewSwitcherManager.showMessage(R.string.search_error);
+                    mViewSwitcherManager.showError(mError);
                 }
-
             }
         }
     }
