@@ -16,9 +16,10 @@ import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
-import android.widget.ImageView;
 
 import com.markiv.gis.GISService;
+import com.markiv.gis.SearchSession;
+import com.markiv.gis.api.model.APIResult;
 import com.markiv.gis.image.GISImageView;
 import com.markiv.images.R;
 
@@ -30,7 +31,7 @@ class GImageSearchAdapter extends BaseAdapter {
     private static final int MAX_SEARCH_RESULTS = 64;
 
     private final Context mContext;
-    private final GISService.Session mSearchSession;
+    private final SearchSession mSearchSession;
     private final GISService.GISImageViewFactory mImageViewFactory;
 
     private AbsListView.LayoutParams mCellLayoutParams;
@@ -45,7 +46,7 @@ class GImageSearchAdapter extends BaseAdapter {
     private int actualResultCount = -1;
     private int displayedResultCount = MAX_SEARCH_RESULTS;
 
-    public GImageSearchAdapter(Context context, GISService.Session searchSession, GISService.GISImageViewFactory imageViewFactory, SearchActivity.ViewFlipperManager viewSwitcherManager) {
+    public GImageSearchAdapter(Context context, SearchSession searchSession, GISService.GISImageViewFactory imageViewFactory, SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;
         mImageViewFactory = imageViewFactory;
@@ -109,10 +110,10 @@ class GImageSearchAdapter extends BaseAdapter {
         return networkImageView;
     }
 
-    private class ViewSetter extends AsyncTask<Void, Void, GISService.Result> {
+    private class ViewSetter extends AsyncTask<Void, Void, SearchSession.Result> {
         private WeakReference<GISImageView> mViewWeakReference;
         private int mPosition;
-        private Future<GISService.Result> mResultFuture;
+        private Future<SearchSession.Result> mResultFuture;
 
         private ViewSetter(GISImageView view, int position) {
             mViewWeakReference = new WeakReference<GISImageView>(view);
@@ -136,7 +137,7 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected GISService.Result doInBackground(Void... params) {
+        protected SearchSession.Result doInBackground(Void... params) {
             if(!isCancelled()) {
                 try {
                     //TODO We should ideally be asking for images of the required size, but the GISService doesn't provide for this
@@ -153,13 +154,13 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected void onPostExecute(GISService.Result gisResult) {
+        protected void onPostExecute(SearchSession.Result gisResult) {
             if(!isCancelled()) {
                 setData(mViewWeakReference.get(), gisResult);
             }
         }
 
-        public void setData(GISImageView view, GISService.Result data){
+        public void setData(GISImageView view, SearchSession.Result data){
             if(view != null) {
                 if (data != null) {
                     view.setGISResult(data);

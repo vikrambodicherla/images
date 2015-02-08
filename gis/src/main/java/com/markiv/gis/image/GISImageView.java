@@ -10,7 +10,7 @@ import android.widget.ImageView;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
-import com.markiv.gis.GISService;
+import com.markiv.gis.SearchSession;
 
 /**
  * @author vikrambd
@@ -28,7 +28,7 @@ public class GISImageView extends NetworkImageView {
         setScaleType(ImageView.ScaleType.FIT_XY);
     }
 
-    public void setGISResult(GISService.Result result){
+    public void setGISResult(SearchSession.Result result){
         setImageUrl(result.getUrl(), mImageLoader);
     }
 
