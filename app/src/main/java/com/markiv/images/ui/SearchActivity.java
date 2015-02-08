@@ -11,6 +11,7 @@ import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.GridView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
@@ -105,6 +106,7 @@ public class SearchActivity extends ActionBarActivity {
     class ViewFlipperManager {
         private GridView mScrollView;
         private TextView mMessagesTextView;
+        private TextView mErrorMessageTextView;
 
         private ViewFlipper mViewFlipper;
 
@@ -113,6 +115,7 @@ public class SearchActivity extends ActionBarActivity {
 
             mScrollView = (GridView) findViewById(R.id.search_grid);
             mMessagesTextView = (TextView) findViewById(R.id.search_message);
+            mErrorMessageTextView = (TextView) findViewById(R.id.search_error_detail);
         }
 
         public void setGridAdapter(ListAdapter adapter){
@@ -123,13 +126,28 @@ public class SearchActivity extends ActionBarActivity {
             mViewFlipper.setDisplayedChild(2);
         }
 
-        public void showMessage(String message){
+        public void showError(String message){
             mViewFlipper.setDisplayedChild(1);
-            mMessagesTextView.setText(message);
+            mMessagesTextView.setText(R.string.search_error);
+            if(!TextUtils.isEmpty(message)) {
+                mErrorMessageTextView.setVisibility(View.VISIBLE);
+                mErrorMessageTextView.setText(message);
+            }
+            else {
+                mErrorMessageTextView.setVisibility(View.INVISIBLE);
+            }
         }
 
         public void showMessage(int stringResId){
-            showMessage(getResources().getString(stringResId));
+            mViewFlipper.setDisplayedChild(1);
+            mMessagesTextView.setText(stringResId);
+            mErrorMessageTextView.setVisibility(View.INVISIBLE);
+        }
+
+        public void showMessage(String message){
+            mViewFlipper.setDisplayedChild(1);
+            mMessagesTextView.setText(message);
+            mErrorMessageTextView.setVisibility(View.INVISIBLE);
         }
     }
 }

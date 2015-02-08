@@ -100,21 +100,27 @@ public class SearchSession {
 
                 @Override
                 public Result get() throws InterruptedException, ExecutionException {
-                    persist(apiResponseFuture.get());
-                    return new Result(mCache.get(pos));
+                    try {
+                        processResponse(apiResponseFuture.get());
+                    }
+                    catch (SearchFailedException e){
+                        throw new ExecutionException(e);
+                    }
+                    return mCache.get(pos) != null ? new Result(mCache.get(pos)) : null;
                 }
 
                 @Override
                 public Result get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                    apiResponseFuture.get(timeout, unit);
-                    return new Result(mCache.get(pos));
+                    try {
+                        processResponse(apiResponseFuture.get(timeout, unit));
+                    }
+                    catch (SearchFailedException e){
+                        throw new ExecutionException(e);
+                    }
+                    return mCache.get(pos) != null ? new Result(mCache.get(pos)) : null;
                 }
             };
         }
-    }
-
-    public void persist(){
-        //TODO Implement
     }
 
     /*
@@ -131,7 +137,7 @@ public class SearchSession {
         mSearchService.shutdownNow();
     }
 
-    private void persist(APIResponse apiResponse){
+    private void processResponse(APIResponse apiResponse) throws SearchFailedException {
         if (apiResponse.isSuccess()) {
             mCache.batchPut(apiResponse.start, apiResponse.getSearchResults());
             if(mResultCount == -1){
@@ -142,11 +148,9 @@ public class SearchSession {
                 //TODO Optimization: persist this to disk to enable faster loading subsequently
             }
         }
-
-    }
-
-    private void persistPage(APIResponse APIResponse){
-
+        else {
+            throw new SearchFailedException(apiResponse.getErrorMessage());
+        }
     }
 
     //If we at any point need more options, we should convert this to a Builder
@@ -171,41 +175,6 @@ public class SearchSession {
             return mImageSearchResults.get(position);
         }
 
-        public synchronized Future<APIResult> getWrappedInFuture(int position){
-            final APIResult APIResult = get(position);
-            if(APIResult != null){
-                return new Future<APIResult>() {
-                    @Override
-                    public boolean cancel(boolean mayInterruptIfRunning) {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean isCancelled() {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean isDone() {
-                        return true;
-                    }
-
-                    @Override
-                    public APIResult get() throws InterruptedException, ExecutionException {
-                        return APIResult;
-                    }
-
-                    @Override
-                    public APIResult get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                        return get();
-                    }
-                };
-            }
-            else {
-                return null;
-            }
-        }
-
         public synchronized void clear(){
             mImageSearchResults.evictAll();
         }
@@ -224,6 +193,16 @@ public class SearchSession {
 
         public String getUrl(){
             return mAPIResult.getTbUrl();
+        }
+    }
+
+    public static class SearchFailedException extends Exception {
+        public SearchFailedException(Throwable cause){
+            super(cause);
+        }
+
+        public SearchFailedException(String error){
+            super(error);
         }
     }
 }

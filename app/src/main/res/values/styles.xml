@@ -4,4 +4,13 @@
     <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
         <!-- Customize your theme here. -->
     </style>
+
+    <style name="SearchMessageTextView">
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
+
+    <style name="SearchErrorTextView">
+        <item name="android:textColor">@color/searchErrorTextViewColor</item>
+        <item name="android:lineSpacingMultiplier">1.2</item>
+    </style>
 </resources>
