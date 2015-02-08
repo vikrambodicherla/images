@@ -153,10 +153,6 @@ public class SearchSession {
         }
     }
 
-    private void persistPage(APIResponse APIResponse){
-
-    }
-
     //If we at any point need more options, we should convert this to a Builder
     public static SearchSession newSession(Context context, String query, int pageSize){
         return new SearchSession(GISClient.newInstance(query, VolleyProvider.getInstance(context).getQueue()), query, pageSize);
@@ -177,41 +173,6 @@ public class SearchSession {
 
         public synchronized APIResult get(int position) {
             return mImageSearchResults.get(position);
-        }
-
-        public synchronized Future<APIResult> getWrappedInFuture(int position){
-            final APIResult APIResult = get(position);
-            if(APIResult != null){
-                return new Future<APIResult>() {
-                    @Override
-                    public boolean cancel(boolean mayInterruptIfRunning) {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean isCancelled() {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean isDone() {
-                        return true;
-                    }
-
-                    @Override
-                    public APIResult get() throws InterruptedException, ExecutionException {
-                        return APIResult;
-                    }
-
-                    @Override
-                    public APIResult get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-                        return get();
-                    }
-                };
-            }
-            else {
-                return null;
-            }
         }
 
         public synchronized void clear(){
