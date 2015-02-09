@@ -1,3 +1,4 @@
+
 package com.markiv.images.ui;
 
 import java.lang.ref.WeakReference;
@@ -23,12 +24,10 @@ import com.markiv.gis.image.GISImageView;
 import com.markiv.images.R;
 
 /**
-* @author vikrambd
-* @since 1/25/15
-*/
+ * @author vikrambd
+ * @since 1/25/15
+ */
 class GImageSearchAdapter extends BaseAdapter {
-    private static final int MAX_SEARCH_RESULTS = 64;
-
     private final Context mContext;
     private final SearchSession mSearchSession;
     private final GISService.GISImageViewFactory mImageViewFactory;
@@ -37,15 +36,9 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private final SearchActivity.ViewFlipperManager mViewSwitcherManager;
 
-    /*
-     * We start by assuming we have 64 results. The first time we get a response, we adjust this number
-     * if needed
-     */
-    private boolean resultCountAdjusted = false;
-    private int actualResultCount = -1;
-    private int displayedResultCount = MAX_SEARCH_RESULTS;
-
-    public GImageSearchAdapter(Context context, SearchSession searchSession, GISService.GISImageViewFactory imageViewFactory, SearchActivity.ViewFlipperManager viewSwitcherManager) {
+    public GImageSearchAdapter(Context context, SearchSession searchSession,
+            GISService.GISImageViewFactory imageViewFactory,
+            SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;
         mImageViewFactory = imageViewFactory;
@@ -53,24 +46,34 @@ class GImageSearchAdapter extends BaseAdapter {
         mViewSwitcherManager = viewSwitcherManager;
 
         setupCellLayoutParams();
+
+        mSearchSession
+                .setSearchResultSetUpdatesListener(new SearchSession.SearchResultSetUpdateListener() {
+                    @Override
+                    public void onResultSetSizeChanged() {
+                        notifyDataSetChanged();
+                    }
+                });
     }
 
-    private void setupCellLayoutParams(){
+    private void setupCellLayoutParams() {
         final Resources res = mContext.getResources();
-        final int gridHorizontalSpacing = res.getDimensionPixelSize(R.dimen.grid_horizontal_spacing);
+        final int gridHorizontalSpacing = res
+                .getDimensionPixelSize(R.dimen.grid_horizontal_spacing);
 
-        final Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+        final Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay();
         final Point size = new Point();
         display.getSize(size);
         final int screenWidth = size.x;
 
-        final int cellWidth = (screenWidth - 4 * gridHorizontalSpacing)/3;
+        final int cellWidth = (screenWidth - 4 * gridHorizontalSpacing) / 3;
         mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, GridView.AUTO_FIT);
     }
 
     @Override
     public int getCount() {
-        return displayedResultCount;
+        return mSearchSession.getResultCount();
     }
 
     @Override
@@ -86,7 +89,7 @@ class GImageSearchAdapter extends BaseAdapter {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         GISImageView networkImageView;
-        if(convertView == null){
+        if (convertView == null) {
             networkImageView = mImageViewFactory.newImageView();
             networkImageView.setLayoutParams(mCellLayoutParams);
         }
@@ -95,15 +98,15 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         ViewSetter viewSetter = (ViewSetter) networkImageView.getTag();
-        if(viewSetter == null || viewSetter.getPosition() != position){
-            if(viewSetter != null){
+        if (viewSetter == null || viewSetter.getPosition() != position) {
+            if (viewSetter != null) {
                 viewSetter.cancelAndClearRefs();
             }
 
             viewSetter = new ViewSetter(networkImageView, position);
             networkImageView.setTag(viewSetter);
 
-            viewSetter.execute((Void)null);
+            viewSetter.execute((Void) null);
         }
 
         return networkImageView;
@@ -121,7 +124,7 @@ class GImageSearchAdapter extends BaseAdapter {
             mPosition = position;
         }
 
-        public void cancelAndClearRefs(){
+        public void cancelAndClearRefs() {
             cancel(true);
             mViewWeakReference.clear();
         }
@@ -132,23 +135,22 @@ class GImageSearchAdapter extends BaseAdapter {
 
         @Override
         protected void onCancelled() {
-            if(mResultFuture != null){
+            if (mResultFuture != null) {
                 mResultFuture.cancel(true);
             }
         }
 
         @Override
         protected SearchSession.Result doInBackground(Void... params) {
-            if(!isCancelled()) {
+            if (!isCancelled()) {
                 try {
-                    //TODO We should ideally be asking for images of the required size, but the GISService doesn't provide for this
                     mResultFuture = mSearchSession.fetchResult(mPosition);
                     return mResultFuture.get();
                 } catch (InterruptedException e) {
                     Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
                 } catch (ExecutionException e) {
                     Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
-                    if(e.getCause() instanceof SearchSession.SearchFailedException){
+                    if (e.getCause() instanceof SearchSession.SearchFailedException) {
                         mError = e.getCause().getMessage();
                     }
                 }
@@ -158,12 +160,12 @@ class GImageSearchAdapter extends BaseAdapter {
 
         @Override
         protected void onPostExecute(SearchSession.Result gisResult) {
-            if(!isCancelled()) {
+            if (!isCancelled()) {
                 setData(mViewWeakReference.get(), gisResult);
             }
         }
 
-        public void setData(GISImageView view, SearchSession.Result data){
+        public void setData(GISImageView view, SearchSession.Result data) {
             if (view != null) {
                 if (data != null) {
                     view.setGISResult(data);
@@ -172,11 +174,6 @@ class GImageSearchAdapter extends BaseAdapter {
                     // that
                     // TODO doesnt work
                     mViewSwitcherManager.showGrid();
-
-                    if (!resultCountAdjusted) {
-                        adjustResultCount();
-                    }
-
                 } else if (mSearchSession.getResultCount() == 0) {
                     mViewSwitcherManager.showMessage(String.format(mContext.getResources()
                             .getString(R.string.no_search_results), mSearchSession.getQuery()));
@@ -188,15 +185,4 @@ class GImageSearchAdapter extends BaseAdapter {
         }
     }
 
-    private void adjustResultCount(){
-        resultCountAdjusted = true;
-        actualResultCount = mSearchSession.getResultCount();
-
-        if(actualResultCount < MAX_SEARCH_RESULTS){
-            //If we have more than 64 results, let's just show 64 results because that's the max that
-            //Google Search allows
-            displayedResultCount = actualResultCount;
-            notifyDataSetChanged();
-        }
-    }
 }

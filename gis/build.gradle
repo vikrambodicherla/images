@@ -12,6 +12,7 @@ android {
 
         buildConfigField "String", "GOOGLE_SEARCH_API", "\"https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1\$s&start=%2\$s&rsz=%3\$s&userip=%4\$s\""
         buildConfigField "int", "MAX_SEARCH_RESULTS", "64"
+        buildConfigField "int", "MAX_VALID_RSZ", "8"
     }
     buildTypes {
         release {

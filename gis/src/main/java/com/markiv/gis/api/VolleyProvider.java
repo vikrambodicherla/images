@@ -6,7 +6,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
 
 /**
- * Singleton Volley-provider
+ * Singleton Volley provider for all image queues
  * @author vikrambd
  * @since 1/20/15
  */
@@ -21,7 +21,7 @@ public class VolleyProvider {
         mImageRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
     }
 
-    public RequestQueue getQueue() {
+    public RequestQueue getRequestQueue() {
         return queue;
     }
 

@@ -8,6 +8,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v4.util.LruCache;
 
 import com.markiv.gis.api.GISClient;
@@ -17,22 +19,48 @@ import com.markiv.gis.api.model.APIResult;
 
 /**
  * Represents a search session. This class abstracts away the notion of pages to provide for a
- * continuous iterative experience over search results. The session maintains 3*PEEK_FACTOR blocks
- * of List<GImageSearchResult> corresponding to the current block being viewed, the previous and the
- * next block
+ * continuous iterative experience over search results. Internally, duplicate requests are merged.
+ * Once the session-UI ceases to exist, the session needs to be killed to release all resources at
+ * which point it is no longer reusable.
  * 
  * @author vikrambd
  * @since 1/20/15
  */
 public class SearchSession {
+    private static final int DEFAULT_PAGE_SIZE = BuildConfig.MAX_VALID_RSZ;
     private final GISClient mSearchService;
     private final String mQuery;
     private final int mPageSize;
 
     private final ResultsCache mCache;
 
-    private int mResultCount = -1;
+    /*
+     * We start by assuming we have 64 results. The first time we get a response, we adjust this
+     * number if needed
+     */
+    private boolean resultCountAdjusted = false;
+    private int displayedResultCount = BuildConfig.MAX_SEARCH_RESULTS;
 
+    private SearchResultSetUpdateListener mUpdateListener;
+
+    private Handler mMainThreadHandler;
+
+    /**
+     * Create a search session for a given query
+     * @param searchService
+     * @param query
+     */
+    SearchSession(GISClient searchService, String query){
+        this(searchService, query, DEFAULT_PAGE_SIZE);
+    }
+
+    /**
+     * Create a search session for a given query and a specific pageSize. Optimizing on the pageSize
+     * improves the pageSize.
+     * @param searchService
+     * @param query
+     * @param pageSize
+     */
     SearchSession(GISClient searchService, String query, int pageSize) {
         mQuery = query;
         mSearchService = searchService;
@@ -40,18 +68,37 @@ public class SearchSession {
 
         mCache = new ResultsCache();
 
+        mMainThreadHandler = new Handler(Looper.getMainLooper());
+
         //Prefetch
         //TODO A strategy object can be passed from the UI which takes screen size and device memory
         //TODO into consideration to prefetch better
         fetchResult(0);
     }
 
+    /**
+     * Sets the SearchResultSetUpdateListener
+     * @param listener
+     */
+    public void setSearchResultSetUpdatesListener(SearchResultSetUpdateListener listener){
+        mUpdateListener = listener;
+    }
+
+    /**
+     * Get the basis query of the session
+     * @return
+     */
     public String getQuery() {
         return mQuery;
     }
 
-    public Future<Result> fetchResult(final int pos) {
-        final APIResult cachedResult = mCache.get(pos);
+    /**
+     * Get a Future Result object of the search result at a given position
+     * @param position
+     * @return
+     */
+    public Future<Result> fetchResult(final int position) {
+        final APIResult cachedResult = mCache.get(position);
         if(cachedResult != null){
             return new Future<Result>() {
                 @Override
@@ -81,7 +128,7 @@ public class SearchSession {
             };
         }
         else {
-            final Future<APIResponse> apiResponseFuture = mSearchService.fetchPage((pos/mPageSize) * mPageSize, mPageSize);
+            final Future<APIResponse> apiResponseFuture = mSearchService.fetchPage((position/mPageSize) * mPageSize, mPageSize);
             return new Future<Result>() {
                 @Override
                 public boolean cancel(boolean mayInterruptIfRunning) {
@@ -106,7 +153,7 @@ public class SearchSession {
                     catch (SearchFailedException e){
                         throw new ExecutionException(e);
                     }
-                    return mCache.get(pos) != null ? new Result(mCache.get(pos)) : null;
+                    return mCache.get(position) != null ? new Result(mCache.get(position)) : null;
                 }
 
                 @Override
@@ -117,21 +164,24 @@ public class SearchSession {
                     catch (SearchFailedException e){
                         throw new ExecutionException(e);
                     }
-                    return mCache.get(pos) != null ? new Result(mCache.get(pos)) : null;
+                    return mCache.get(position) != null ? new Result(mCache.get(position)) : null;
                 }
             };
         }
     }
 
-    /*
-     * This method returns a valid value only after the first call is done successfully.
-     * //TODO This is hacky. This call should always work - either return a valid value or notify the
-     * //TODO caller that a value is not yet available
+    /**
+     * The number of results in the search set. This can change at any point during the life of the
+     * session and the change is notified via the SearchResultSetUpdateListener
+     * @return
      */
     public int getResultCount(){
-        return mResultCount;
+        return displayedResultCount;
     }
 
+    /**
+     * Kills the search session. After this no more fetches can be made on the session
+     */
     public void kill(){
         mCache.clear();
         mSearchService.shutdownNow();
@@ -140,8 +190,8 @@ public class SearchSession {
     private void processResponse(APIResponse apiResponse) throws SearchFailedException {
         if (apiResponse.isSuccess()) {
             mCache.batchPut(apiResponse.start, apiResponse.getSearchResults());
-            if(mResultCount == -1){
-                mResultCount = apiResponse.responseData.cursor.estimatedResultCount;
+            if(!resultCountAdjusted){
+                adjustResultCountIfNeeded(apiResponse.responseData.cursor.estimatedResultCount);
             }
 
             if(apiResponse.start == 0){
@@ -153,9 +203,24 @@ public class SearchSession {
         }
     }
 
+    private void adjustResultCountIfNeeded(int actualResultCount){
+        resultCountAdjusted = true;
+        if(actualResultCount < displayedResultCount){
+            displayedResultCount = actualResultCount;
+            if(mUpdateListener != null){
+                mMainThreadHandler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mUpdateListener.onResultSetSizeChanged();
+                    }
+                });
+            }
+        }
+    }
+
     //If we at any point need more options, we should convert this to a Builder
     public static SearchSession newSession(Context context, String query, int pageSize){
-        return new SearchSession(GISClient.newInstance(query, VolleyProvider.getInstance(context).getQueue()), query, pageSize);
+        return new SearchSession(GISClient.newInstance(query, VolleyProvider.getInstance(context).getRequestQueue()), query, pageSize);
     }
 
     public static class ResultsCache {
@@ -180,6 +245,9 @@ public class SearchSession {
         }
     }
 
+    /**
+     * A search result from a session. A result composes of the title and a URL.
+     */
     public static class Result {
         public APIResult mAPIResult;
 
@@ -196,6 +264,9 @@ public class SearchSession {
         }
     }
 
+    /**
+     * Thrown when a search fails in an unrecoverable fashion
+     */
     public static class SearchFailedException extends Exception {
         public SearchFailedException(Throwable cause){
             super(cause);
@@ -204,5 +275,16 @@ public class SearchSession {
         public SearchFailedException(String error){
             super(error);
         }
+    }
+
+    /**
+     * Interface definition for a callback to notify the client of changes in the result set
+     */
+    public interface SearchResultSetUpdateListener {
+        /**
+         * This method is invoked when the search result set changes. This invocation happens on
+         * the main thread.
+         */
+        public void onResultSetSizeChanged();
     }
 }
