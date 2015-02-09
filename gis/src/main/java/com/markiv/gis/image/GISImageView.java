@@ -13,6 +13,9 @@ import com.android.volley.toolbox.NetworkImageView;
 import com.markiv.gis.SearchSession;
 
 /**
+ * A GISImageView can be loaded with a SearchSession Result and the bitmap is fetched and loaded
+ * automatically
+ * 
  * @author vikrambd
  * @since 2/4/15
  */
