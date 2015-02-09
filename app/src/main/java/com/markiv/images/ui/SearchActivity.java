@@ -14,8 +14,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.GridView;
 import android.widget.ListAdapter;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.ViewFlipper;
+import android.widget.ViewSwitcher;
 
 import com.markiv.gis.GISService;
 import com.markiv.gis.SearchSession;
@@ -104,15 +106,17 @@ public class SearchActivity extends ActionBarActivity {
     }
 
     class ViewFlipperManager {
+        private ViewSwitcher mViewFlipper;
+
         private GridView mScrollView;
         private TextView mMessagesTextView;
         private TextView mErrorMessageTextView;
-
-        private ViewFlipper mViewFlipper;
+        private ProgressBar mProgressBar;
 
         ViewFlipperManager() {
-            mViewFlipper = (ViewFlipper) findViewById(R.id.search_switcher);
+            mViewFlipper = (ViewSwitcher) findViewById(R.id.search_switcher);
 
+            mProgressBar = (ProgressBar) findViewById(R.id.search_progress);
             mScrollView = (GridView) findViewById(R.id.search_grid);
             mMessagesTextView = (TextView) findViewById(R.id.search_message);
             mErrorMessageTextView = (TextView) findViewById(R.id.search_error_detail);
@@ -123,10 +127,12 @@ public class SearchActivity extends ActionBarActivity {
         }
 
         public void showGrid(){
-            mViewFlipper.setDisplayedChild(2);
+            mProgressBar.setVisibility(View.GONE);
+            mViewFlipper.setDisplayedChild(0);
         }
 
         public void showError(String message){
+            mProgressBar.setVisibility(View.GONE);
             mViewFlipper.setDisplayedChild(1);
             mMessagesTextView.setText(R.string.search_error);
             if(!TextUtils.isEmpty(message)) {
@@ -139,12 +145,14 @@ public class SearchActivity extends ActionBarActivity {
         }
 
         public void showMessage(int stringResId){
+            mProgressBar.setVisibility(View.GONE);
             mViewFlipper.setDisplayedChild(1);
             mMessagesTextView.setText(stringResId);
             mErrorMessageTextView.setVisibility(View.INVISIBLE);
         }
 
         public void showMessage(String message){
+            mProgressBar.setVisibility(View.GONE);
             mViewFlipper.setDisplayedChild(1);
             mMessagesTextView.setText(message);
             mErrorMessageTextView.setVisibility(View.INVISIBLE);

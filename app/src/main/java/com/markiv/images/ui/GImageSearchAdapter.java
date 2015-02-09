@@ -165,15 +165,26 @@ class GImageSearchAdapter extends BaseAdapter {
             }
         }
 
-        public void setData(GISImageView view, SearchSession.Result data) {
+        public void setData(final GISImageView view, SearchSession.Result data) {
             if (view != null) {
                 if (data != null) {
+                    view.setBitmapLoadedListener(new GISImageView.BitmapLoadedListener() {
+                        @Override
+                        public void onBitmapLoaded() {
+                            view.post(new Runnable() {
+                                @Override
+                                public void run() {
+                                    mViewSwitcherManager.showGrid();
+                                }
+                            });
+                        }
+                    });
                     view.setGISResult(data);
 
                     // TODO I'd want to do this when the first imageview is set, but for some reason
                     // that
                     // TODO doesnt work
-                    mViewSwitcherManager.showGrid();
+                    //mViewSwitcherManager.showGrid();
                 } else if (mSearchSession.getResultCount() == 0) {
                     mViewSwitcherManager.showMessage(String.format(mContext.getResources()
                             .getString(R.string.no_search_results), mSearchSession.getQuery()));
