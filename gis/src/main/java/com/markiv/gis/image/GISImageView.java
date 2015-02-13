@@ -7,6 +7,7 @@ import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
@@ -21,7 +22,8 @@ import com.markiv.gis.SearchSession;
  */
 public class GISImageView extends NetworkImageView {
     private static final int FADE_IN_TIME_MS = 250;
-    private ImageLoader mImageLoader;
+    private final ImageLoader mImageLoader;
+    private BitmapLoadedListener mBitmapLoadedListener;
 
     public GISImageView(Context context, ImageLoader imageLoader) {
         super(context);
@@ -35,6 +37,10 @@ public class GISImageView extends NetworkImageView {
         setImageUrl(result.getUrl(), mImageLoader);
     }
 
+    public void setBitmapLoadedListener(BitmapLoadedListener listener){
+        mBitmapLoadedListener = listener;
+    }
+
     @Override
     public void setImageBitmap(Bitmap bm) {
         TransitionDrawable td = new TransitionDrawable(new Drawable[]{
@@ -44,5 +50,13 @@ public class GISImageView extends NetworkImageView {
 
         setImageDrawable(td);
         td.startTransition(FADE_IN_TIME_MS);
+
+        if(mBitmapLoadedListener != null){
+            mBitmapLoadedListener.onBitmapLoaded();
+        }
+    }
+
+    public static interface BitmapLoadedListener {
+        public void onBitmapLoaded();
     }
 }
