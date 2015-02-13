@@ -151,7 +151,7 @@ class GImageSearchAdapter extends BaseAdapter {
                 } catch (InterruptedException e) {
                     Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
                 } catch (ExecutionException e) {
-                    Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
+                    Log.e("GImageSearchAdapter.ViewSetter", "Fetch failed", e);
                     if (e.getCause() instanceof SearchSession.SearchFailedException) {
                         mError = e.getCause().getMessage();
                     }
