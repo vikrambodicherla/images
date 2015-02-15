@@ -48,7 +48,16 @@ public class GISClient {
         mRequestQueue = requestQueue;
     }
 
-    public void shutdownNow() {
+    public void cancelAll(){
+        mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
+            @Override
+            public boolean apply(Request<?> request) {
+                return true;
+            }
+        });
+    }
+
+    public void stop() {
         mRequestQueue.stop();
     }
 

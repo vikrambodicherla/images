@@ -1,9 +1,7 @@
 package com.markiv.images;
 
 import android.app.Application;
-import android.content.Context;
-import android.content.Intent;
-import android.support.v4.content.LocalBroadcastManager;
+import android.os.StrictMode;
 
 /**
  * @author vikrambd
@@ -13,5 +11,11 @@ public class GImageSearchApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        //Enable strictmode for debug
+        if (BuildConfig.DEBUG) {
+            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build());
+            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().detectAll().penaltyLog().build());
+        }
     }
 }

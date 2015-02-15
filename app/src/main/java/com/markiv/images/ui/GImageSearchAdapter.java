@@ -18,7 +18,7 @@ import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 
-import com.markiv.gis.GISService;
+import com.markiv.gis.GISImageManager;
 import com.markiv.gis.SearchSession;
 import com.markiv.gis.image.GISImageView;
 import com.markiv.images.R;
@@ -30,7 +30,7 @@ import com.markiv.images.R;
 class GImageSearchAdapter extends BaseAdapter {
     private final Context mContext;
     private final SearchSession mSearchSession;
-    private final GISService.GISImageViewFactory mImageViewFactory;
+    private final GISImageManager mImageViewFactory;
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
@@ -39,7 +39,7 @@ class GImageSearchAdapter extends BaseAdapter {
     private boolean mFirstImageLoaded = false;
 
     public GImageSearchAdapter(Context context, SearchSession searchSession,
-            GISService.GISImageViewFactory imageViewFactory,
+            GISImageManager imageViewFactory,
             SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;
@@ -90,28 +90,28 @@ class GImageSearchAdapter extends BaseAdapter {
 
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
-        GISImageView networkImageView;
+        GISImageView imageView;
         if (convertView == null) {
-            networkImageView = mImageViewFactory.newImageView();
-            networkImageView.setLayoutParams(mCellLayoutParams);
+            imageView = mImageViewFactory.newImageView();
+            imageView.setLayoutParams(mCellLayoutParams);
         }
         else {
-            networkImageView = (GISImageView) convertView;
+            imageView = (GISImageView) convertView;
         }
 
-        ViewSetter viewSetter = (ViewSetter) networkImageView.getTag();
+        ViewSetter viewSetter = (ViewSetter) imageView.getTag();
         if (viewSetter == null || viewSetter.getPosition() != position) {
             if (viewSetter != null) {
                 viewSetter.cancelAndClearRefs();
             }
 
-            viewSetter = new ViewSetter(networkImageView, position);
-            networkImageView.setTag(viewSetter);
+            viewSetter = new ViewSetter(imageView, position);
+            imageView.setTag(viewSetter);
 
             viewSetter.execute((Void) null);
         }
 
-        return networkImageView;
+        return imageView;
     }
 
     private class ViewSetter extends AsyncTask<Void, Void, SearchSession.Result> {
@@ -149,9 +149,9 @@ class GImageSearchAdapter extends BaseAdapter {
                     mResultFuture = mSearchSession.fetchResult(mPosition);
                     return mResultFuture.get();
                 } catch (InterruptedException e) {
-                    Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
+                    Log.e("ViewSetter", "Fetch interrupted", e);
                 } catch (ExecutionException e) {
-                    Log.e("GImageSearchAdapter.ViewSetter", "Fetch failed", e);
+                    Log.e("ViewSetter", "Fetch failed", e);
                     if (e.getCause() instanceof SearchSession.SearchFailedException) {
                         mError = e.getCause().getMessage();
                     }
@@ -185,7 +185,7 @@ class GImageSearchAdapter extends BaseAdapter {
                             .getString(R.string.no_search_results), mSearchSession.getQuery()));
                 }
                 else {
-                    mSearchSession.kill();
+                    mSearchSession.stop();
                     mViewSwitcherManager.showError(mError);
                 }
             }
