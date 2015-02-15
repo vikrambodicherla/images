@@ -218,11 +218,6 @@ public class SearchSession {
         }
     }
 
-    //If we at any point need more options, we should convert this to a Builder
-    public static SearchSession newSession(Context context, String query, int pageSize){
-        return new SearchSession(GISClient.newInstance(query, VolleyProvider.getInstance(context).getRequestQueue()), query, pageSize);
-    }
-
     public static class ResultsCache {
         private final LruCache<Integer, APIResult> mImageSearchResults = new LruCache<>(64);
 

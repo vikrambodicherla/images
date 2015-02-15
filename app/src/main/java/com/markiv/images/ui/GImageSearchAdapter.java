@@ -18,7 +18,7 @@ import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 
-import com.markiv.gis.GISService;
+import com.markiv.gis.GISImageViewManager;
 import com.markiv.gis.SearchSession;
 import com.markiv.gis.image.GISImageView;
 import com.markiv.images.R;
@@ -30,7 +30,7 @@ import com.markiv.images.R;
 class GImageSearchAdapter extends BaseAdapter {
     private final Context mContext;
     private final SearchSession mSearchSession;
-    private final GISService.GISImageViewFactory mImageViewFactory;
+    private final GISImageViewManager mImageViewFactory;
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
@@ -39,7 +39,7 @@ class GImageSearchAdapter extends BaseAdapter {
     private boolean mFirstImageLoaded = false;
 
     public GImageSearchAdapter(Context context, SearchSession searchSession,
-            GISService.GISImageViewFactory imageViewFactory,
+            GISImageViewManager imageViewFactory,
             SearchActivity.ViewFlipperManager viewSwitcherManager) {
         mContext = context;
         mSearchSession = searchSession;

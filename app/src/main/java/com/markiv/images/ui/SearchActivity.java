@@ -17,9 +17,9 @@ import android.widget.GridView;
 import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.ViewFlipper;
 import android.widget.ViewSwitcher;
 
+import com.markiv.gis.GISImageViewManager;
 import com.markiv.gis.GISService;
 import com.markiv.gis.SearchSession;
 import com.markiv.images.BuildConfig;
@@ -32,6 +32,7 @@ public class SearchActivity extends ActionBarActivity {
 
     private GISService mGISService;
     private SearchSession mActiveSession;
+    private GISImageViewManager mImageViewManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +48,7 @@ public class SearchActivity extends ActionBarActivity {
 
         mViewSwitcherManager = new ViewFlipperManager();
         mGISService = new GISService(this, 8);
+        mImageViewManager = mGISService.newImageViewManager();
 
         final String query = (savedInstanceState != null) ? savedInstanceState.getString(QUERY) : getQueryFromIntent(getIntent());
         if(query != null){
@@ -87,8 +89,8 @@ public class SearchActivity extends ActionBarActivity {
             }
 
             //TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen size
-            mActiveSession = mGISService.startSearch(query);
-            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession, mGISService.getImageViewFactory(), mViewSwitcherManager));
+            mActiveSession = mGISService.newSearch(query);
+            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession, mImageViewManager, mViewSwitcherManager));
         }
     }
 
