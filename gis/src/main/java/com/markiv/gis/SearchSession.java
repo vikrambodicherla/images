@@ -180,11 +180,11 @@ public class SearchSession {
     }
 
     /**
-     * Kills the search session. After this no more fetches can be made on the session
+     * Stops the search session. After this no more fetches can be made on the session
      */
-    public void kill(){
+    public void stop(){
         mCache.clear();
-        mSearchService.shutdownNow();
+        mSearchService.stop();
     }
 
     private void processResponse(APIResponse apiResponse) throws SearchFailedException {

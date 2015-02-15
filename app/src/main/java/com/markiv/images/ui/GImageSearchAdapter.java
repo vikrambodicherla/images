@@ -34,18 +34,17 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
-    private final SearchActivity.ViewFlipperManager mViewSwitcherManager;
+    private final OnSearchStateChangeListener mSearchStateChangeListener;
 
     private boolean mFirstImageLoaded = false;
 
     public GImageSearchAdapter(Context context, SearchSession searchSession,
             GISImageViewManager imageViewFactory,
-            SearchActivity.ViewFlipperManager viewSwitcherManager) {
+            OnSearchStateChangeListener searchStateChangeListener) {
         mContext = context;
         mSearchSession = searchSession;
         mImageViewFactory = imageViewFactory;
-
-        mViewSwitcherManager = viewSwitcherManager;
+        mSearchStateChangeListener = searchStateChangeListener;
 
         setupCellLayoutParams();
 
@@ -175,21 +174,26 @@ class GImageSearchAdapter extends BaseAdapter {
                             @Override
                             public void onBitmapLoaded() {
                                 mFirstImageLoaded = true;
-                                mViewSwitcherManager.showGrid();
+
+                                mSearchStateChangeListener.onAdapterReady();
                             }
                         });
                     }
                     view.setGISResult(data);
                 } else if (mSearchSession.getResultCount() == 0) {
-                    mViewSwitcherManager.showMessage(String.format(mContext.getResources()
-                            .getString(R.string.no_search_results), mSearchSession.getQuery()));
+                    mSearchStateChangeListener.onZeroResults();
                 }
                 else {
-                    mSearchSession.kill();
-                    mViewSwitcherManager.showError(mError);
+                    mSearchSession.stop();
+                    mSearchStateChangeListener.onSearchError(mError);
                 }
             }
         }
     }
 
+    public interface OnSearchStateChangeListener {
+        public void onAdapterReady();
+        public void onZeroResults();
+        public void onSearchError(String error);
+    }
 }

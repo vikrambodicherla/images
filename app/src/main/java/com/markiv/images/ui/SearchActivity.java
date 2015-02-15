@@ -81,16 +81,33 @@ public class SearchActivity extends ActionBarActivity {
 
     }
 
-    private void search(String query){
+    private void search(final String query){
         new SearchHistoryManager(this).recordSearch(query);
         if(mActiveSession == null || !query.equals(mActiveSession.getQuery())){
             if(mActiveSession != null){
-                mActiveSession.kill();
+                mActiveSession.stop();
+                mImageViewManager.stop();
             }
 
             //TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen size
             mActiveSession = mGISService.newSearch(query);
-            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession, mImageViewManager, mViewSwitcherManager));
+            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession, mImageViewManager, new GImageSearchAdapter.OnSearchStateChangeListener() {
+                @Override
+                public void onAdapterReady() {
+                    mViewSwitcherManager.showGrid();
+                }
+
+                @Override
+                public void onZeroResults() {
+                    mViewSwitcherManager.showMessage(String.format(getResources()
+                            .getString(R.string.no_search_results), query));
+                }
+
+                @Override
+                public void onSearchError(String error) {
+                    mViewSwitcherManager.showError(error);
+                }
+            }));
         }
     }
 
@@ -153,13 +170,6 @@ public class SearchActivity extends ActionBarActivity {
             else {
                 mErrorMessageTextView.setVisibility(View.INVISIBLE);
             }
-        }
-
-        public void showMessage(int stringResId){
-            mProgressBar.setVisibility(View.GONE);
-            mViewFlipper.setDisplayedChild(1);
-            mMessagesTextView.setText(stringResId);
-            mErrorMessageTextView.setVisibility(View.INVISIBLE);
         }
 
         public void showMessage(String message){

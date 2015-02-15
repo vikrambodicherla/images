@@ -48,7 +48,7 @@ public class GISClient {
         mRequestQueue = requestQueue;
     }
 
-    public void shutdownNow() {
+    public void stop() {
         mRequestQueue.stop();
     }
 
