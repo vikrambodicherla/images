@@ -13,7 +13,7 @@ import android.os.Looper;
 import android.support.v4.util.LruCache;
 
 import com.markiv.gis.api.GISClient;
-import com.markiv.gis.api.VolleyRequestQueueProvider;
+import com.markiv.gis.api.VolleyProvider;
 import com.markiv.gis.api.model.APIResponse;
 import com.markiv.gis.api.model.APIResult;
 
@@ -180,18 +180,11 @@ public class SearchSession {
     }
 
     /**
-     * Cancels all the pending requests. This is usually needed when the host activity/fragment stops
+     * Kills the search session. After this no more fetches can be made on the session
      */
-    public void cancelAll(){
+    public void kill(){
         mCache.clear();
-        mSearchService.cancelAll();
-    }
-
-    /**
-     * Stop the search service. This is usually done at the end of the host's life
-     */
-    public void stop(){
-        mSearchService.stop();
+        mSearchService.shutdownNow();
     }
 
     private void processResponse(APIResponse apiResponse) throws SearchFailedException {
@@ -223,6 +216,11 @@ public class SearchSession {
                 });
             }
         }
+    }
+
+    //If we at any point need more options, we should convert this to a Builder
+    public static SearchSession newSession(Context context, String query, int pageSize){
+        return new SearchSession(GISClient.newInstance(query, VolleyProvider.getInstance(context).getRequestQueue()), query, pageSize);
     }
 
     public static class ResultsCache {

@@ -16,9 +16,9 @@ import android.widget.GridView;
 import android.widget.ListAdapter;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.ViewFlipper;
 import android.widget.ViewSwitcher;
 
-import com.markiv.gis.GISImageManager;
 import com.markiv.gis.GISService;
 import com.markiv.gis.SearchSession;
 import com.markiv.images.R;
@@ -30,53 +30,34 @@ public class SearchActivity extends ActionBarActivity {
 
     private GISService mGISService;
     private SearchSession mActiveSession;
-    private GISImageManager mImageManager;
-
-    private String mQuery;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        mQuery = (savedInstanceState != null) ? savedInstanceState.getString(QUERY) : getQueryFromIntent(getIntent());
-        if(mQuery == null){
-            finish();
-        }
-
         setContentView(R.layout.activity_search);
-        
+
         mViewSwitcherManager = new ViewFlipperManager();
         mGISService = new GISService(this, 8);
-        mImageManager = mGISService.newImageManager();
 
-        // Setup the UI
-        final ActionBar actionBar = getSupportActionBar();
-        actionBar.setTitle(mQuery);
-        actionBar.setDisplayHomeAsUpEnabled(true);
+        final String query = (savedInstanceState != null) ? savedInstanceState.getString(QUERY) : getQueryFromIntent(getIntent());
+        if(query != null){
+            //Setup the UI
+            final ActionBar actionBar = getSupportActionBar();
+            actionBar.setTitle(query);
+            actionBar.setDisplayHomeAsUpEnabled(true);
 
-        search(mQuery);
+            //Search
+            search(query);
+        }
+        else {
+            finish();
+        }
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         outState.putString(QUERY, mActiveSession.getQuery());
         super.onSaveInstanceState(outState);
-    }
-
-    @Override
-    protected void onStop() {
-        mImageManager.cancelAll();
-        mActiveSession.cancelAll();
-
-        super.onStop();
-    }
-
-    @Override
-    protected void onDestroy() {
-        mActiveSession.stop();
-        mImageManager.stop();
-
-        super.onDestroy();
     }
 
     private String getQueryFromIntent(Intent intent){
@@ -86,18 +67,19 @@ public class SearchActivity extends ActionBarActivity {
         }
 
         return !TextUtils.isEmpty(query) ? query : null;
+
     }
 
     private void search(String query){
         new SearchHistoryManager(this).recordSearch(query);
         if(mActiveSession == null || !query.equals(mActiveSession.getQuery())){
             if(mActiveSession != null){
-                mActiveSession.stop();
+                mActiveSession.kill();
             }
 
             //TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen size
             mActiveSession = mGISService.startSearch(query);
-            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession, mImageManager, mViewSwitcherManager));
+            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession, mGISService.getImageViewFactory(), mViewSwitcherManager));
         }
     }
 
