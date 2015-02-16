@@ -1,3 +1,4 @@
+
 package com.markiv.images.ui;
 
 import android.app.SearchManager;
@@ -38,10 +39,18 @@ public class SearchActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        //Enable strictmode for debug
+        // Enable strictmode for debug
         if (BuildConfig.DEBUG) {
-            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().detectAll().penaltyLog().build());
-            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().detectAll().penaltyLog().build());
+            StrictMode.setThreadPolicy(new StrictMode.ThreadPolicy.Builder().detectAll()
+                    .penaltyLog().build());
+            StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder().detectAll().penaltyLog()
+                    .build());
+        }
+
+        final String query = (savedInstanceState != null) ? savedInstanceState.getString(QUERY)
+                : getQueryFromIntent(getIntent());
+        if (query == null) {
+            finish();
         }
 
         setContentView(R.layout.activity_search);
@@ -50,19 +59,13 @@ public class SearchActivity extends ActionBarActivity {
         mGISService = new GISService(this, 8);
         mImageViewManager = mGISService.newImageViewManager();
 
-        final String query = (savedInstanceState != null) ? savedInstanceState.getString(QUERY) : getQueryFromIntent(getIntent());
-        if(query != null){
-            //Setup the UI
-            final ActionBar actionBar = getSupportActionBar();
-            actionBar.setTitle(query);
-            actionBar.setDisplayHomeAsUpEnabled(true);
+        // Setup the UI
+        final ActionBar actionBar = getSupportActionBar();
+        actionBar.setTitle(query);
+        actionBar.setDisplayHomeAsUpEnabled(true);
 
-            //Search
-            search(query);
-        }
-        else {
-            finish();
-        }
+        // Search
+        search(query);
     }
 
     @Override
@@ -71,9 +74,9 @@ public class SearchActivity extends ActionBarActivity {
         super.onSaveInstanceState(outState);
     }
 
-    private String getQueryFromIntent(Intent intent){
+    private String getQueryFromIntent(Intent intent) {
         String query = null;
-        if(intent != null && Intent.ACTION_SEARCH.equals(intent.getAction())) {
+        if (intent != null && Intent.ACTION_SEARCH.equals(intent.getAction())) {
             query = getIntent().getStringExtra(SearchManager.QUERY);
         }
 
@@ -81,33 +84,35 @@ public class SearchActivity extends ActionBarActivity {
 
     }
 
-    private void search(final String query){
+    private void search(final String query) {
         new SearchHistoryManager(this).recordSearch(query);
-        if(mActiveSession == null || !query.equals(mActiveSession.getQuery())){
-            if(mActiveSession != null){
+        if (mActiveSession == null || !query.equals(mActiveSession.getQuery())) {
+            if (mActiveSession != null) {
                 mActiveSession.stop();
                 mImageViewManager.stop();
             }
 
-            //TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen size
+            // TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen
+            // size
             mActiveSession = mGISService.newSearch(query);
-            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession, mImageViewManager, new GImageSearchAdapter.OnSearchStateChangeListener() {
-                @Override
-                public void onAdapterReady() {
-                    mViewSwitcherManager.showGrid();
-                }
+            mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mActiveSession,
+                    mImageViewManager, new GImageSearchAdapter.OnSearchStateChangeListener() {
+                        @Override
+                        public void onAdapterReady() {
+                            mViewSwitcherManager.showGrid();
+                        }
 
-                @Override
-                public void onZeroResults() {
-                    mViewSwitcherManager.showMessage(String.format(getResources()
-                            .getString(R.string.no_search_results), query));
-                }
+                        @Override
+                        public void onZeroResults() {
+                            mViewSwitcherManager.showMessage(String.format(getResources()
+                                    .getString(R.string.no_search_results), query));
+                        }
 
-                @Override
-                public void onSearchError(String error) {
-                    mViewSwitcherManager.showError(error);
-                }
-            }));
+                        @Override
+                        public void onSearchError(String error) {
+                            mViewSwitcherManager.showError(error);
+                        }
+                    }));
         }
     }
 
@@ -117,14 +122,15 @@ public class SearchActivity extends ActionBarActivity {
 
         final MenuItem searchItem = menu.findItem(R.id.ic_search);
         SearchView searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
-        searchView.setSearchableInfo(((SearchManager) getSystemService(Context.SEARCH_SERVICE)).getSearchableInfo(getComponentName()));
+        searchView.setSearchableInfo(((SearchManager) getSystemService(Context.SEARCH_SERVICE))
+                .getSearchableInfo(getComponentName()));
 
         return true;
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if(item.getItemId() == android.R.id.home){
+        if (item.getItemId() == android.R.id.home) {
             onBackPressed();
             return true;
         }
@@ -150,20 +156,20 @@ public class SearchActivity extends ActionBarActivity {
             mErrorMessageTextView = (TextView) findViewById(R.id.search_error_detail);
         }
 
-        public void setGridAdapter(ListAdapter adapter){
+        public void setGridAdapter(ListAdapter adapter) {
             mScrollView.setAdapter(adapter);
         }
 
-        public void showGrid(){
+        public void showGrid() {
             mProgressBar.setVisibility(View.GONE);
             mViewFlipper.setDisplayedChild(0);
         }
 
-        public void showError(String message){
+        public void showError(String message) {
             mProgressBar.setVisibility(View.GONE);
             mViewFlipper.setDisplayedChild(1);
             mMessagesTextView.setText(R.string.search_error);
-            if(!TextUtils.isEmpty(message)) {
+            if (!TextUtils.isEmpty(message)) {
                 mErrorMessageTextView.setVisibility(View.VISIBLE);
                 mErrorMessageTextView.setText(message);
             }
@@ -172,7 +178,7 @@ public class SearchActivity extends ActionBarActivity {
             }
         }
 
-        public void showMessage(String message){
+        public void showMessage(String message) {
             mProgressBar.setVisibility(View.GONE);
             mViewFlipper.setDisplayedChild(1);
             mMessagesTextView.setText(message);
