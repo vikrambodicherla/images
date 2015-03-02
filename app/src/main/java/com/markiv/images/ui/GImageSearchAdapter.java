@@ -18,9 +18,9 @@ import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 
-import com.markiv.gis.GISImageViewManager;
 import com.markiv.gis.SearchSession;
 import com.markiv.gis.image.GISImageView;
+import com.markiv.gis.image.ImageViewManager;
 import com.markiv.images.R;
 
 /**
@@ -30,7 +30,7 @@ import com.markiv.images.R;
 class GImageSearchAdapter extends BaseAdapter {
     private final Context mContext;
     private final SearchSession mSearchSession;
-    private final GISImageViewManager mImageViewFactory;
+    private final ImageViewManager mImageViewFactory;
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
@@ -39,7 +39,7 @@ class GImageSearchAdapter extends BaseAdapter {
     private boolean mFirstImageLoaded = false;
 
     public GImageSearchAdapter(Context context, SearchSession searchSession,
-            GISImageViewManager imageViewFactory,
+            ImageViewManager imageViewFactory,
             OnSearchStateChangeListener searchStateChangeListener) {
         mContext = context;
         mSearchSession = searchSession;
@@ -115,6 +115,7 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private class ViewSetter extends AsyncTask<Void, Void, SearchSession.Result> {
         private WeakReference<GISImageView> mViewWeakReference;
+
         private int mPosition;
         private Future<SearchSession.Result> mResultFuture;
 
@@ -126,8 +127,12 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         public void cancelAndClearRefs() {
-            cancel(true);
             mViewWeakReference.clear();
+            if(mResultFuture != null) {
+                Log.d("ViewSetter", "Future cancelled");
+                mResultFuture.cancel(true);
+            }
+            cancel(true);
         }
 
         public int getPosition() {
@@ -137,6 +142,7 @@ class GImageSearchAdapter extends BaseAdapter {
         @Override
         protected void onCancelled() {
             if (mResultFuture != null) {
+                Log.d("ViewSetter", "Future cancelled2");
                 mResultFuture.cancel(true);
             }
         }
@@ -174,7 +180,6 @@ class GImageSearchAdapter extends BaseAdapter {
                             @Override
                             public void onBitmapLoaded() {
                                 mFirstImageLoaded = true;
-
                                 mSearchStateChangeListener.onAdapterReady();
                             }
                         });
@@ -184,7 +189,7 @@ class GImageSearchAdapter extends BaseAdapter {
                     mSearchStateChangeListener.onZeroResults();
                 }
                 else {
-                    mSearchSession.stop();
+                    mSearchSession.cancelAll();
                     mSearchStateChangeListener.onSearchError(mError);
                 }
             }
