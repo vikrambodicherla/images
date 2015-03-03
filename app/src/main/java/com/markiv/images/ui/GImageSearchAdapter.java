@@ -2,6 +2,7 @@
 package com.markiv.images.ui;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -38,6 +39,9 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private boolean mFirstImageLoaded = false;
 
+    //Do not manipulate this object on a non-UI thread. Access to this method if not thread-safe.
+    private final HashMap<String, ViewSetter> mViewSetterHashMap = new HashMap<String, ViewSetter>();
+
     public GImageSearchAdapter(Context context, SearchSession searchSession,
             ImageViewManager imageViewFactory,
             OnSearchStateChangeListener searchStateChangeListener) {
@@ -72,6 +76,10 @@ class GImageSearchAdapter extends BaseAdapter {
         mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, GridView.AUTO_FIT);
     }
 
+    public void clear(){
+        mViewSetterHashMap.clear();
+    }
+
     @Override
     public int getCount() {
         return mSearchSession.getResultCount();
@@ -98,14 +106,17 @@ class GImageSearchAdapter extends BaseAdapter {
             networkImageView = (GISImageView) convertView;
         }
 
-        ViewSetter viewSetter = (ViewSetter) networkImageView.getTag();
+        ViewSetter viewSetter = mViewSetterHashMap.get((String) networkImageView.getTag());
         if (viewSetter == null || viewSetter.getPosition() != position) {
             if (viewSetter != null) {
                 viewSetter.cancelAndClearRefs();
+                mViewSetterHashMap.remove(viewSetter.toString());
             }
 
             viewSetter = new ViewSetter(networkImageView, position);
-            networkImageView.setTag(viewSetter);
+            final String viewSetterKey = viewSetter.toString();
+            mViewSetterHashMap.put(viewSetterKey, viewSetter);
+            networkImageView.setTag(viewSetterKey);
 
             viewSetter.execute((Void) null);
         }
@@ -193,6 +204,11 @@ class GImageSearchAdapter extends BaseAdapter {
                     mSearchStateChangeListener.onSearchError(mError);
                 }
             }
+        }
+
+        @Override
+        public String toString() {
+            return super.toString() + "_" + mPosition;
         }
     }
 

@@ -28,6 +28,8 @@ public class SearchActivity extends ActionBarActivity {
     private SearchSession mSearchSession;
     private ImageViewManager mImageViewManager;
 
+    private GImageSearchAdapter mSearchAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,6 +85,7 @@ public class SearchActivity extends ActionBarActivity {
         super.onDestroy();
         mImageViewManager.stop();
         mSearchSession.stop();
+        mSearchAdapter.clear();
     }
 
     private String getQueryFromIntent(Intent intent) {
@@ -100,7 +103,7 @@ public class SearchActivity extends ActionBarActivity {
         // TODO Optimize, make smaller pages on a smaller device - less memory or smaller screen
         // size
         mSearchSession = SearchSession.newInstance(this, query);
-        mViewSwitcherManager.setGridAdapter(new GImageSearchAdapter(this, mSearchSession,
+        mSearchAdapter = new GImageSearchAdapter(this, mSearchSession,
                 mImageViewManager, new GImageSearchAdapter.OnSearchStateChangeListener() {
                     @Override
                     public void onAdapterReady() {
@@ -117,7 +120,8 @@ public class SearchActivity extends ActionBarActivity {
                     public void onSearchError(String error) {
                         mViewSwitcherManager.showError(error);
                     }
-                }));
+                });
+        mViewSwitcherManager.setGridAdapter(mSearchAdapter);
     }
 
     class ViewFlipperManager {
