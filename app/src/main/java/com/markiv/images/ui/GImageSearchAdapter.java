@@ -2,6 +2,7 @@
 package com.markiv.images.ui;
 
 import java.lang.ref.WeakReference;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -18,9 +19,9 @@ import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 import android.widget.GridView;
 
-import com.markiv.gis.GISService;
 import com.markiv.gis.SearchSession;
 import com.markiv.gis.image.GISImageView;
+import com.markiv.gis.image.ImageViewManager;
 import com.markiv.images.R;
 
 /**
@@ -30,22 +31,24 @@ import com.markiv.images.R;
 class GImageSearchAdapter extends BaseAdapter {
     private final Context mContext;
     private final SearchSession mSearchSession;
-    private final GISService.GISImageViewFactory mImageViewFactory;
+    private final ImageViewManager mImageViewFactory;
 
     private AbsListView.LayoutParams mCellLayoutParams;
 
-    private final SearchActivity.ViewFlipperManager mViewSwitcherManager;
+    private final OnSearchStateChangeListener mSearchStateChangeListener;
 
     private boolean mFirstImageLoaded = false;
 
+    //Do not manipulate this object on a non-UI thread. Access to this method if not thread-safe.
+    private final HashMap<String, ViewSetter> mViewSetterHashMap = new HashMap<String, ViewSetter>();
+
     public GImageSearchAdapter(Context context, SearchSession searchSession,
-            GISService.GISImageViewFactory imageViewFactory,
-            SearchActivity.ViewFlipperManager viewSwitcherManager) {
+            ImageViewManager imageViewFactory,
+            OnSearchStateChangeListener searchStateChangeListener) {
         mContext = context;
         mSearchSession = searchSession;
         mImageViewFactory = imageViewFactory;
-
-        mViewSwitcherManager = viewSwitcherManager;
+        mSearchStateChangeListener = searchStateChangeListener;
 
         setupCellLayoutParams();
 
@@ -71,6 +74,10 @@ class GImageSearchAdapter extends BaseAdapter {
 
         final int cellWidth = (screenWidth - 4 * gridHorizontalSpacing) / 3;
         mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, GridView.AUTO_FIT);
+    }
+
+    public void clear(){
+        mViewSetterHashMap.clear();
     }
 
     @Override
@@ -99,14 +106,17 @@ class GImageSearchAdapter extends BaseAdapter {
             networkImageView = (GISImageView) convertView;
         }
 
-        ViewSetter viewSetter = (ViewSetter) networkImageView.getTag();
+        ViewSetter viewSetter = mViewSetterHashMap.get((String) networkImageView.getTag());
         if (viewSetter == null || viewSetter.getPosition() != position) {
             if (viewSetter != null) {
                 viewSetter.cancelAndClearRefs();
+                mViewSetterHashMap.remove(viewSetter.toString());
             }
 
             viewSetter = new ViewSetter(networkImageView, position);
-            networkImageView.setTag(viewSetter);
+            final String viewSetterKey = viewSetter.toString();
+            mViewSetterHashMap.put(viewSetterKey, viewSetter);
+            networkImageView.setTag(viewSetterKey);
 
             viewSetter.execute((Void) null);
         }
@@ -116,6 +126,7 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private class ViewSetter extends AsyncTask<Void, Void, SearchSession.Result> {
         private WeakReference<GISImageView> mViewWeakReference;
+
         private int mPosition;
         private Future<SearchSession.Result> mResultFuture;
 
@@ -127,8 +138,12 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         public void cancelAndClearRefs() {
-            cancel(true);
             mViewWeakReference.clear();
+            if(mResultFuture != null) {
+                Log.d("ViewSetter", "Future cancelled");
+                mResultFuture.cancel(true);
+            }
+            cancel(true);
         }
 
         public int getPosition() {
@@ -138,6 +153,7 @@ class GImageSearchAdapter extends BaseAdapter {
         @Override
         protected void onCancelled() {
             if (mResultFuture != null) {
+                Log.d("ViewSetter", "Future cancelled2");
                 mResultFuture.cancel(true);
             }
         }
@@ -149,9 +165,9 @@ class GImageSearchAdapter extends BaseAdapter {
                     mResultFuture = mSearchSession.fetchResult(mPosition);
                     return mResultFuture.get();
                 } catch (InterruptedException e) {
-                    Log.e("GImageSearchAdapter.ViewSetter", "Fetch interrupted", e);
+                    Log.e("ViewSetter", "Fetch interrupted", e);
                 } catch (ExecutionException e) {
-                    Log.e("GImageSearchAdapter.ViewSetter", "Fetch failed", e);
+                    Log.e("ViewSetter", "Fetch failed", e);
                     if (e.getCause() instanceof SearchSession.SearchFailedException) {
                         mError = e.getCause().getMessage();
                     }
@@ -175,21 +191,30 @@ class GImageSearchAdapter extends BaseAdapter {
                             @Override
                             public void onBitmapLoaded() {
                                 mFirstImageLoaded = true;
-                                mViewSwitcherManager.showGrid();
+                                mSearchStateChangeListener.onAdapterReady();
                             }
                         });
                     }
                     view.setGISResult(data);
                 } else if (mSearchSession.getResultCount() == 0) {
-                    mViewSwitcherManager.showMessage(String.format(mContext.getResources()
-                            .getString(R.string.no_search_results), mSearchSession.getQuery()));
+                    mSearchStateChangeListener.onZeroResults();
                 }
                 else {
-                    mSearchSession.kill();
-                    mViewSwitcherManager.showError(mError);
+                    mSearchSession.cancelAll();
+                    mSearchStateChangeListener.onSearchError(mError);
                 }
             }
         }
+
+        @Override
+        public String toString() {
+            return super.toString() + "_" + mPosition;
+        }
     }
 
+    public interface OnSearchStateChangeListener {
+        public void onAdapterReady();
+        public void onZeroResults();
+        public void onSearchError(String error);
+    }
 }

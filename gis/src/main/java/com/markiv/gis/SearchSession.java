@@ -13,7 +13,6 @@ import android.os.Looper;
 import android.support.v4.util.LruCache;
 
 import com.markiv.gis.api.GISClient;
-import com.markiv.gis.api.VolleyProvider;
 import com.markiv.gis.api.model.APIResponse;
 import com.markiv.gis.api.model.APIResult;
 
@@ -28,7 +27,7 @@ import com.markiv.gis.api.model.APIResult;
  */
 public class SearchSession {
     private static final int DEFAULT_PAGE_SIZE = BuildConfig.MAX_VALID_RSZ;
-    private final GISClient mSearchService;
+    private final GISClient mGISClient;
     private final String mQuery;
     private final int mPageSize;
 
@@ -46,24 +45,15 @@ public class SearchSession {
     private Handler mMainThreadHandler;
 
     /**
-     * Create a search session for a given query
-     * @param searchService
-     * @param query
-     */
-    SearchSession(GISClient searchService, String query){
-        this(searchService, query, DEFAULT_PAGE_SIZE);
-    }
-
-    /**
      * Create a search session for a given query and a specific pageSize. Optimizing on the pageSize
      * improves the pageSize.
-     * @param searchService
+     * @param gisClient
      * @param query
      * @param pageSize
      */
-    SearchSession(GISClient searchService, String query, int pageSize) {
+    SearchSession(GISClient gisClient, String query, int pageSize) {
         mQuery = query;
-        mSearchService = searchService;
+        mGISClient = gisClient;
         mPageSize = pageSize;
 
         mCache = new ResultsCache();
@@ -128,7 +118,7 @@ public class SearchSession {
             };
         }
         else {
-            final Future<APIResponse> apiResponseFuture = mSearchService.fetchPage((position/mPageSize) * mPageSize, mPageSize);
+            final Future<APIResponse> apiResponseFuture = mGISClient.fetchPage((position/mPageSize) * mPageSize, mPageSize);
             return new Future<Result>() {
                 @Override
                 public boolean cancel(boolean mayInterruptIfRunning) {
@@ -180,11 +170,18 @@ public class SearchSession {
     }
 
     /**
-     * Kills the search session. After this no more fetches can be made on the session
+     * Cancels all pending requests. This is usually done in onPause
      */
-    public void kill(){
-        mCache.clear();
-        mSearchService.shutdownNow();
+    public void cancelAll(){
+        mGISClient.cancelAll();
+    }
+
+    /**
+     * Stops the GISClient. After this, the SearchSession is no longer usable. This is usually done
+     * in onDestroy() of the host activity/fragment
+     */
+    public void stop(){
+        mGISClient.stop();
     }
 
     private void processResponse(APIResponse apiResponse) throws SearchFailedException {
@@ -216,11 +213,6 @@ public class SearchSession {
                 });
             }
         }
-    }
-
-    //If we at any point need more options, we should convert this to a Builder
-    public static SearchSession newSession(Context context, String query, int pageSize){
-        return new SearchSession(GISClient.newInstance(query, VolleyProvider.getInstance(context).getRequestQueue()), query, pageSize);
     }
 
     public static class ResultsCache {
@@ -286,5 +278,9 @@ public class SearchSession {
          * the main thread.
          */
         public void onResultSetSizeChanged();
+    }
+
+    public static SearchSession newInstance(Context context, String query){
+        return new SearchSession(GISClient.newInstance(context, query), query, DEFAULT_PAGE_SIZE);
     }
 }

@@ -1,3 +1,4 @@
+
 package com.markiv.gis.image;
 
 import android.content.Context;
@@ -7,11 +8,9 @@ import android.util.DisplayMetrics;
 
 import com.android.volley.toolbox.ImageLoader.ImageCache;
 
-//TODO Add disk cache
 public class LruBitmapCache extends LruCache<String, Bitmap>
         implements ImageCache {
 
-    private static LruBitmapCache sBitmapCache;
     private LruBitmapCache(int maxSize) {
         super(maxSize);
     }
@@ -31,19 +30,15 @@ public class LruBitmapCache extends LruCache<String, Bitmap>
         put(url, bitmap);
     }
 
-    public static LruBitmapCache getInstance(Context context) {
-        if(sBitmapCache == null) {
-            final DisplayMetrics displayMetrics = context.getResources().
-                    getDisplayMetrics();
-            final int screenWidth = displayMetrics.widthPixels;
-            final int screenHeight = displayMetrics.heightPixels;
+    public static LruBitmapCache newInstance(Context context) {
+        final DisplayMetrics displayMetrics = context.getResources().
+                getDisplayMetrics();
+        final int screenWidth = displayMetrics.widthPixels;
+        final int screenHeight = displayMetrics.heightPixels;
 
-            // 4 bytes per pixel
-            final int screenBytes = screenWidth * screenHeight * 4;
-            final int size = screenBytes * 3;
-            sBitmapCache = new LruBitmapCache(size);
-        }
-
-        return sBitmapCache;
+        // 4 bytes per pixel
+        final int screenBytes = screenWidth * screenHeight * 4;
+        final int size = screenBytes * 3;
+        return new LruBitmapCache(size);
     }
 }

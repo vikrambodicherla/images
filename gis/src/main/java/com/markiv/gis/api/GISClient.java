@@ -10,6 +10,7 @@ import java.util.Enumeration;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+import android.content.Context;
 import android.text.format.Formatter;
 import android.util.Log;
 
@@ -32,6 +33,7 @@ import com.markiv.gis.api.model.APIResponse;
  * @since 1/20/15 //TODO Evaluate if caching is useful. Volley gives us free caching.
  */
 public class GISClient {
+    private static final String sLOCAL_IP;
     private static final Object sREQUEST_LIST_LOCK = new Object();
     private static final String sSEARCH_QUERY_URL = BuildConfig.GOOGLE_SEARCH_API;
 
@@ -40,15 +42,21 @@ public class GISClient {
 
     private final String mQuery;
 
-    private final String mLocalIpAddress;
-
-    public GISClient(String query, RequestQueue requestQueue) {
+    public GISClient(Context context, String query, VolleyProvider volleyProvider) {
         mQuery = query;
-        mLocalIpAddress = getLocalIpAddress();
-        mRequestQueue = requestQueue;
+        mRequestQueue = volleyProvider.newRequestQueue(context);
     }
 
-    public void shutdownNow() {
+    public void cancelAll(){
+        mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
+            @Override
+            public boolean apply(Request<?> request) {
+                return true;
+            }
+        });
+    }
+
+    public void stop(){
         mRequestQueue.stop();
     }
 
@@ -135,14 +143,14 @@ public class GISClient {
     public String buildUrl(String query, int start, int rsz) {
         try {
             return String.format(sSEARCH_QUERY_URL, URLEncoder.encode(query, "utf-8"),
-                    String.valueOf(start), String.valueOf(rsz), mLocalIpAddress);
+                    String.valueOf(start), String.valueOf(rsz), sLOCAL_IP);
         } catch (UnsupportedEncodingException e) {
             Log.e("GImageSearchService", "Encoding the query to utf-8 failed", e);
             throw new RuntimeException(e);
         }
     }
 
-    public String getLocalIpAddress() {
+    private static String getLocalIpAddress() {
         try {
             for (Enumeration<NetworkInterface> en = NetworkInterface.getNetworkInterfaces(); en
                     .hasMoreElements();) {
@@ -162,7 +170,12 @@ public class GISClient {
         return null;
     }
 
-    public static GISClient newInstance(String query, RequestQueue requestQueue){
-        return new GISClient(query, requestQueue);
+    public static GISClient newInstance(Context context, String query){
+        return new GISClient(context, query, VolleyProvider.getInstance());
     }
+
+    static {
+        sLOCAL_IP = getLocalIpAddress();
+    }
+
 }
