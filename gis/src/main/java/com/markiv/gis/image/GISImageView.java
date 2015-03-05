@@ -6,8 +6,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.TransitionDrawable;
-import android.widget.ImageView;
-import android.widget.Toast;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
@@ -30,7 +28,7 @@ public class GISImageView extends NetworkImageView {
         mImageLoader = imageLoader;
 
         setAdjustViewBounds(true);
-        setScaleType(ImageView.ScaleType.FIT_XY);
+        setScaleType(ScaleType.FIT_CENTER);
     }
 
     public void setGISResult(SearchSession.Result result){

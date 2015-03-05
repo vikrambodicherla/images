@@ -8,16 +8,12 @@ import java.util.concurrent.Future;
 
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Point;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.view.Display;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
-import android.widget.GridView;
 
 import com.markiv.gis.SearchSession;
 import com.markiv.gis.image.GISImageView;
@@ -63,17 +59,7 @@ class GImageSearchAdapter extends BaseAdapter {
 
     private void setupCellLayoutParams() {
         final Resources res = mContext.getResources();
-        final int gridHorizontalSpacing = res
-                .getDimensionPixelSize(R.dimen.grid_horizontal_spacing);
-
-        final Display display = ((WindowManager) mContext.getSystemService(Context.WINDOW_SERVICE))
-                .getDefaultDisplay();
-        final Point size = new Point();
-        display.getSize(size);
-        final int screenWidth = size.x;
-
-        final int cellWidth = (screenWidth - 4 * gridHorizontalSpacing) / 3;
-        mCellLayoutParams = new AbsListView.LayoutParams(cellWidth, GridView.AUTO_FIT);
+        mCellLayoutParams = new AbsListView.LayoutParams((int)res.getDimension(R.dimen.grid_image_width), (int)res.getDimension(R.dimen.grid_image_height));
     }
 
     public void clear(){

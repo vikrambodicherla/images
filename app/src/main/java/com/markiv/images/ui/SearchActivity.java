@@ -121,13 +121,14 @@ public class SearchActivity extends ActionBarActivity {
                         mViewSwitcherManager.showError(error);
                     }
                 });
+
         mViewSwitcherManager.setGridAdapter(mSearchAdapter);
     }
 
     class ViewFlipperManager {
         private ViewSwitcher mViewFlipper;
 
-        private GridView mScrollView;
+        private GridView mGridView;
         private TextView mMessagesTextView;
         private TextView mErrorMessageTextView;
         private ProgressBar mProgressBar;
@@ -136,18 +137,20 @@ public class SearchActivity extends ActionBarActivity {
             mViewFlipper = (ViewSwitcher) findViewById(R.id.search_switcher);
 
             mProgressBar = (ProgressBar) findViewById(R.id.search_progress);
-            mScrollView = (GridView) findViewById(R.id.search_grid);
+            mGridView = (GridView) findViewById(R.id.search_grid);
+            mGridView.setVerticalScrollBarEnabled(false);
             mMessagesTextView = (TextView) findViewById(R.id.search_message);
             mErrorMessageTextView = (TextView) findViewById(R.id.search_error_detail);
         }
 
         public void setGridAdapter(ListAdapter adapter) {
-            mScrollView.setAdapter(adapter);
+            mGridView.setAdapter(adapter);
         }
 
         public void showGrid() {
             mProgressBar.setVisibility(View.GONE);
             mViewFlipper.setDisplayedChild(0);
+            mGridView.setVerticalScrollBarEnabled(true);
         }
 
         public void showError(String message) {
