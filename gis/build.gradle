@@ -11,13 +11,21 @@ android {
         versionName "1.0"
 
         buildConfigField "String", "GOOGLE_SEARCH_API", "\"https://ajax.googleapis.com/ajax/services/search/images?v=1.0&q=%1\$s&start=%2\$s&rsz=%3\$s&userip=%4\$s\""
-        buildConfigField "int", "MAX_SEARCH_RESULTS", "64"
+        buildConfigField "int", "MIN_VALID_START", "0"
+        buildConfigField "int", "MAX_VALID_START", "63"
         buildConfigField "int", "MAX_VALID_RSZ", "8"
+        buildConfigField "int", "MIN_VALID_RSZ", "1"
+        buildConfigField "int", "MAX_RESULT_SET_SIZE", "64"
+
     }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+        debug {
+            debuggable true
+            minifyEnabled false
         }
     }
 

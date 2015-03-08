@@ -15,7 +15,7 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.BaseAdapter;
 
-import com.markiv.gis.SearchSession;
+import com.markiv.gis.Page;
 import com.markiv.gis.image.GISImageView;
 import com.markiv.gis.image.ImageViewManager;
 import com.markiv.images.R;
@@ -26,38 +26,25 @@ import com.markiv.images.R;
  */
 class GImageSearchAdapter extends BaseAdapter {
     private final Context mContext;
-    private final SearchSession mSearchSession;
     private final ImageViewManager mImageViewFactory;
+    private final AbsListView.LayoutParams mCellLayoutParams;
 
-    private AbsListView.LayoutParams mCellLayoutParams;
-
-    private final OnSearchStateChangeListener mSearchStateChangeListener;
-
-    private boolean mFirstImageLoaded = false;
+    //private final List<Future<Page.Item>> mFutures = new ArrayList<Future<Page.Item>>();
 
     //Do not manipulate this object on a non-UI thread. Access to this method if not thread-safe.
     private final HashMap<String, ViewSetter> mViewSetterHashMap = new HashMap<String, ViewSetter>();
 
-    public GImageSearchAdapter(Context context, SearchSession searchSession,
-            ImageViewManager imageViewFactory,
-            OnSearchStateChangeListener searchStateChangeListener) {
+    private final SearchView.DataFetcher mDataFetcher;
+
+    private boolean mFirstImageLoaded = false;
+    private final FirstImageLoadListener mFirstImageLoadListener;
+
+    public GImageSearchAdapter(Context context, ImageViewManager imageViewFactory, SearchView.DataFetcher dataFetcher, FirstImageLoadListener firstImageLoadListener) {
         mContext = context;
-        mSearchSession = searchSession;
         mImageViewFactory = imageViewFactory;
-        mSearchStateChangeListener = searchStateChangeListener;
+        mDataFetcher = dataFetcher;
+        mFirstImageLoadListener = firstImageLoadListener;
 
-        setupCellLayoutParams();
-
-        mSearchSession
-                .setSearchResultSetUpdatesListener(new SearchSession.SearchResultSetUpdateListener() {
-                    @Override
-                    public void onResultSetSizeChanged() {
-                        notifyDataSetChanged();
-                    }
-                });
-    }
-
-    private void setupCellLayoutParams() {
         final Resources res = mContext.getResources();
         mCellLayoutParams = new AbsListView.LayoutParams((int)res.getDimension(R.dimen.grid_image_width), (int)res.getDimension(R.dimen.grid_image_height));
     }
@@ -68,7 +55,7 @@ class GImageSearchAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return mSearchSession.getResultCount();
+        return mDataFetcher.getDataSetSize();
     }
 
     @Override
@@ -94,12 +81,17 @@ class GImageSearchAdapter extends BaseAdapter {
 
         ViewSetter viewSetter = mViewSetterHashMap.get((String) networkImageView.getTag());
         if (viewSetter == null || viewSetter.getPosition() != position) {
+            //Detach the viewsetter if necessary
             if (viewSetter != null) {
                 viewSetter.cancelAndClearRefs();
                 mViewSetterHashMap.remove(viewSetter.toString());
             }
 
-            viewSetter = new ViewSetter(networkImageView, position);
+            //Remove residual work from the viewsetter
+            networkImageView.setImageDrawable(null);
+
+            //Create a new viewsetter
+            viewSetter = new ViewSetter(networkImageView, mDataFetcher.getItem(position), position);
             final String viewSetterKey = viewSetter.toString();
             mViewSetterHashMap.put(viewSetterKey, viewSetter);
             networkImageView.setTag(viewSetterKey);
@@ -110,17 +102,20 @@ class GImageSearchAdapter extends BaseAdapter {
         return networkImageView;
     }
 
-    private class ViewSetter extends AsyncTask<Void, Void, SearchSession.Result> {
+    private class ViewSetter extends AsyncTask<Void, Void, Page.Item> {
         private WeakReference<GISImageView> mViewWeakReference;
+        private final Future<Page.Item> mResultFuture;
+        private final int mPosition;
 
-        private int mPosition;
-        private Future<SearchSession.Result> mResultFuture;
-
-        private String mError = null;
-
-        private ViewSetter(GISImageView view, int position) {
+        private ViewSetter(GISImageView view, Future<Page.Item> itemFuture, int position) {
+            super();
             mViewWeakReference = new WeakReference<GISImageView>(view);
+            mResultFuture = itemFuture;
             mPosition = position;
+        }
+
+        public int getPosition() {
+            return mPosition;
         }
 
         public void cancelAndClearRefs() {
@@ -132,10 +127,6 @@ class GImageSearchAdapter extends BaseAdapter {
             cancel(true);
         }
 
-        public int getPosition() {
-            return mPosition;
-        }
-
         @Override
         protected void onCancelled() {
             if (mResultFuture != null) {
@@ -145,62 +136,54 @@ class GImageSearchAdapter extends BaseAdapter {
         }
 
         @Override
-        protected SearchSession.Result doInBackground(Void... params) {
+        protected Page.Item doInBackground(Void... params) {
+            Thread.currentThread().setName("ViewSetter: " + mPosition);
             if (!isCancelled()) {
                 try {
-                    mResultFuture = mSearchSession.fetchResult(mPosition);
                     return mResultFuture.get();
                 } catch (InterruptedException e) {
                     Log.e("ViewSetter", "Fetch interrupted", e);
-                } catch (ExecutionException e) {
-                    Log.e("ViewSetter", "Fetch failed", e);
-                    if (e.getCause() instanceof SearchSession.SearchFailedException) {
-                        mError = e.getCause().getMessage();
-                    }
+                } catch (ExecutionException e){
+                    //This should never happen! Because if there is a catchable exception in resultFuture.get()
+                    //it should have been caught already. If we see an exception here, it is a runtimeexception
+                    //that we cannot handle
+                    throw new RuntimeException(e);
                 }
+
             }
             return null;
         }
 
         @Override
-        protected void onPostExecute(SearchSession.Result gisResult) {
+        protected void onPostExecute(Page.Item item) {
             if (!isCancelled()) {
-                setData(mViewWeakReference.get(), gisResult);
+                setData(mViewWeakReference.get(), item);
             }
         }
 
-        public void setData(final GISImageView view, SearchSession.Result data) {
+        public void setData(final GISImageView view, Page.Item item) {
             if (view != null) {
-                if (data != null) {
+                if (item != null) {
                     if (!mFirstImageLoaded) {
                         view.setBitmapLoadedListener(new GISImageView.BitmapLoadedListener() {
                             @Override
                             public void onBitmapLoaded() {
                                 mFirstImageLoaded = true;
-                                mSearchStateChangeListener.onAdapterReady();
+                                mFirstImageLoadListener.onFirstImageLoaded();
                             }
                         });
                     }
-                    view.setGISResult(data);
-                } else if (mSearchSession.getResultCount() == 0) {
-                    mSearchStateChangeListener.onZeroResults();
+                    view.setGISResult(item);
                 }
                 else {
-                    mSearchSession.cancelAll();
-                    mSearchStateChangeListener.onSearchError(mError);
+                    //TODO One of the things I don't like!
+                    Log.d("GImageSearchAdapter", "Null data");
                 }
             }
         }
-
-        @Override
-        public String toString() {
-            return super.toString() + "_" + mPosition;
-        }
     }
 
-    public interface OnSearchStateChangeListener {
-        public void onAdapterReady();
-        public void onZeroResults();
-        public void onSearchError(String error);
+    public static interface FirstImageLoadListener {
+        public void onFirstImageLoaded();
     }
 }
