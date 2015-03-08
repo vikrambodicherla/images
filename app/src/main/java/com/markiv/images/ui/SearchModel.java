@@ -11,17 +11,19 @@ import android.os.Looper;
 import android.support.v4.util.LruCache;
 import android.util.Log;
 
-import com.markiv.gis.GISClient;
+import com.markiv.gis.GISService;
 import com.markiv.gis.Page;
 import com.markiv.gis.util.CurrentFuture;
 import com.markiv.gis.util.WrappedFuture;
 
 /**
+ * The SearchModel uses the GIS API (via the GISService) to fetch pages. It maintains an LRU-cache of
+ * list items. Changes to the state of data can be listened to via the StateChangeListener
  * @author vikrambd
  * @since 3/7/15
  */
 public class SearchModel {
-    private final GISClient mGISClient;
+    private final GISService mGISService;
 
     private final ResultsCache mCache;
 
@@ -37,14 +39,14 @@ public class SearchModel {
      * Create a search session for a given query and a specific pageSize. Optimizing on the pageSize
      * improves the pageSize.
      * 
-     * @param gisClient
+     * @param gisService
      */
-    SearchModel(GISClient gisClient) {
-        mGISClient = gisClient;
+    SearchModel(GISService gisService) {
+        mGISService = gisService;
         mCache = new ResultsCache();
 
         //TODO: We need a better strategy here
-        mPageSize = mGISClient.getMaxPageSize();
+        mPageSize = mGISService.getMaxPageSize();
 
         //Fetch count. While we can optimize the hell out of this by getting this info via the first call
         //this approach is cleaner and easier to test
@@ -52,7 +54,7 @@ public class SearchModel {
             @Override
             protected Integer doInBackground(Void... params) {
                 try {
-                    return mGISClient.fetchEstimatedResultCount().get();
+                    return mGISService.fetchResultSetSize().get();
                 }
                 catch (ExecutionException e){
                     //Failed search
@@ -95,17 +97,17 @@ public class SearchModel {
     }
 
     public void onPause(){
-        mGISClient.cancelAll();
+        mGISService.cancelAll();
     }
 
     public void onDestroy(){
-        mGISClient.stop();
+        mGISService.stop();
         mCache.clear();
         mStateChangeListener = null;
     }
 
     public void onLowMemory(){
-        mGISClient.cancelAll();
+        mGISService.cancelAll();
         mCache.clear();
     }
 
@@ -122,7 +124,7 @@ public class SearchModel {
         }
         else {
             try {
-                return new WrappedFuture<Page.Item, Page>(mGISClient.fetchPage(
+                return new WrappedFuture<Page.Item, Page>(mGISService.fetchPage(
                         getPageNumber(position), mPageSize),
                         new WrappedFuture.Adapter<Page.Item, Page>() {
                             @Override
@@ -130,7 +132,7 @@ public class SearchModel {
                                 try {
                                     processResponse(result);
                                 }
-                                catch (final GISClient.SearchFailedException e){
+                                catch (final GISService.SearchFailedException e){
                                     mDisplayedResultCount = -1;
                                     mState = State.ERROR;
                                     if(mStateChangeListener != null) {
@@ -147,7 +149,7 @@ public class SearchModel {
                                 return mCache.get(position);
                             }
                         });
-            } catch (GISClient.UnsupportedSearchRequestException e) {
+            } catch (GISService.UnsupportedSearchRequestException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -167,25 +169,10 @@ public class SearchModel {
         return mDisplayedResultCount;
     }
 
-    /**
-     * Cancels all pending requests. This is usually done in onPause
-     */
-    public void cancelAll() {
-        mGISClient.cancelAll();
-    }
-
-    /**
-     * Stops the GISClient. After this, the SearchSession is no longer usable. This is usually done
-     * in onDestroy() of the host activity/fragment
-     */
-    public void stop() {
-        mGISClient.stop();
-    }
-
     /*
      * Process the page and cache the response.
      */
-    private void processResponse(Page page) throws GISClient.SearchFailedException {
+    private void processResponse(Page page) throws GISService.SearchFailedException {
         if (!page.isEmpty()) {
             mCache.batchPut(page.getStart(), page.getItems().iterator());
         }

@@ -9,7 +9,7 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.text.TextUtils;
 
-import com.markiv.gis.GISClient;
+import com.markiv.gis.GISService;
 import com.markiv.gis.image.ImageViewManager;
 import com.markiv.images.BuildConfig;
 import com.markiv.images.R;
@@ -46,7 +46,7 @@ public class SearchActivity extends ActionBarActivity {
         mImageViewManager = ImageViewManager.newInstance(this);
 
         mSearchView = new SearchView(this, mImageViewManager);
-        mSearchModel = new SearchModel(GISClient.newInstance(this, mQuery));
+        mSearchModel = new SearchModel(GISService.newInstance(this, mQuery));
         mSearchPresenter = new SearchPresenter(mSearchView, mSearchModel);
         mSearchPresenter.bind();
     }
