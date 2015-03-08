@@ -1,4 +1,4 @@
-package com.markiv.gis.api;
+package com.markiv.gis.network;
 
 import android.content.Context;
 

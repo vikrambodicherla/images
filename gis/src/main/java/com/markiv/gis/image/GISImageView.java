@@ -9,7 +9,7 @@ import android.graphics.drawable.TransitionDrawable;
 
 import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.NetworkImageView;
-import com.markiv.gis.SearchSession;
+import com.markiv.gis.Page;
 
 /**
  * A GISImageView can be loaded with a SearchSession Result and the bitmap is fetched and loaded
@@ -31,7 +31,7 @@ public class GISImageView extends NetworkImageView {
         setScaleType(ScaleType.FIT_CENTER);
     }
 
-    public void setGISResult(SearchSession.Result result){
+    public void setGISResult(Page.Item result){
         setImageUrl(result.getUrl(), mImageLoader);
     }
 
