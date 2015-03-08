@@ -79,7 +79,7 @@ public class GISService {
                 apiResponseFuture = mInFlightRequests.get(requestIdentifier);
                 if (apiResponseFuture == null) {
                     synchronized (sREQUEST_LIST_LOCK) {
-                        ListenableRequestFuture<APIResponse> requestFuture = ListenableRequestFuture
+                        apiResponseFuture = ListenableRequestFuture
                                 .newFuture(new ListenableRequestFuture.ResponseListener() {
                                     @Override
                                     public void onResponse(Object response) {
@@ -95,7 +95,7 @@ public class GISService {
                                         }
                                     }
                                 });
-                        mGISClient.newRequest(mQuery, start, rsz, requestFuture, requestFuture);
+                        mGISClient.newRequest(mQuery, start, rsz, (ListenableRequestFuture)apiResponseFuture, (ListenableRequestFuture)apiResponseFuture);
                         mInFlightRequests.put(requestIdentifier, apiResponseFuture);
                     }
                 }
