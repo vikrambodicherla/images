@@ -1,5 +1,6 @@
 package com.markiv.images.ui;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import android.text.TextUtils;
@@ -29,7 +30,9 @@ public class SearchView {
 
     private GImageSearchAdapter mSearchAdapter;
 
-    public SearchView(SearchActivity searchActivity, ImageViewManager imageViewManager){
+    private final SearchViewStateChangeListener mSearchViewStateChangeListener;
+
+    public SearchView(SearchActivity searchActivity, ImageViewManager imageViewManager, SearchViewStateChangeListener searchViewStateChangeListener){
         mViewFlipper = (ViewSwitcher) searchActivity.findViewById(R.id.search_switcher);
 
         mProgressBar = (ProgressBar) searchActivity.findViewById(R.id.search_progress);
@@ -39,15 +42,16 @@ public class SearchView {
         mErrorMessageTextView = (TextView) searchActivity.findViewById(R.id.search_error_detail);
 
         mImageViewManager = imageViewManager;
+        mSearchViewStateChangeListener = searchViewStateChangeListener;
     }
 
     public void setDataFetcher(DataFetcher dataFetcher){
         mSearchAdapter = new GImageSearchAdapter(mViewFlipper.getContext(), mImageViewManager, dataFetcher, new GImageSearchAdapter.FirstImageLoadListener() {
             @Override
             public void onFirstImageLoaded() {
-                showGrid();
+                mSearchViewStateChangeListener.onGridReadyToBeShown();
             }
-        });
+        }, mSearchViewStateChangeListener);
         mGridView.setAdapter(mSearchAdapter);
     }
 
@@ -74,13 +78,13 @@ public class SearchView {
         mGridView.setVerticalScrollBarEnabled(true);
     }
 
-    public void showError(String message) {
+    public void showError(String error) {
         mProgressBar.setVisibility(View.GONE);
         mViewFlipper.setDisplayedChild(1);
         mMessagesTextView.setText(R.string.search_error);
-        if (!TextUtils.isEmpty(message)) {
+        if (!TextUtils.isEmpty(error)) {
             mErrorMessageTextView.setVisibility(View.VISIBLE);
-            mErrorMessageTextView.setText(message);
+            mErrorMessageTextView.setText(error);
         }
         else {
             mErrorMessageTextView.setVisibility(View.INVISIBLE);
@@ -97,5 +101,21 @@ public class SearchView {
     public static interface DataFetcher {
         public Future<Page.Item> getItem(int position);
         public int getDataSetSize();
+    }
+
+    /**
+     * Callback interface for receiving exceptions encountered when getting data
+     */
+    public static interface SearchViewStateChangeListener {
+        /**
+         * The first image has been fetched and the SearchView is ready to be displayed
+         */
+        public void onGridReadyToBeShown();
+
+        /**
+         * A SearchResult get has gone wrong in an unrecoverable fashion.
+         * @param e
+         */
+        public void onSearchResultGetException(ExecutionException e);
     }
 }

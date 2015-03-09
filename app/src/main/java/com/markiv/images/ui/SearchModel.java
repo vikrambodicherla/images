@@ -51,6 +51,8 @@ public class SearchModel {
         //Fetch count. While we can optimize the hell out of this by getting this info via the first call
         //this approach is cleaner and easier to test
         new AsyncTask<Void, Void, Integer>(){
+            //This value will be set if we run into an error
+            String mError;
             @Override
             protected Integer doInBackground(Void... params) {
                 try {
@@ -59,6 +61,9 @@ public class SearchModel {
                 catch (ExecutionException e){
                     //Failed search
                     Log.d("SearchModel", "Failed get result count", e);
+                    if(e.getCause() instanceof GISService.SearchFailedException){
+                        mError = e.getCause().getMessage();
+                    }
                     return null;
                 }
                 catch (InterruptedException e){
@@ -80,13 +85,13 @@ public class SearchModel {
                     mDisplayedResultCount = -1;
                     mState = State.ERROR;
                     if(mStateChangeListener != null){
-                        mStateChangeListener.onError(null);
+                        mStateChangeListener.onResultsError(mError);
                     }
                 }
             }
         }.execute((Void)null);
     }
-    
+
     public void setStateChangeListener(StateChangeListener stateChangeListener) {
         mStateChangeListener = stateChangeListener;
     }
@@ -134,7 +139,7 @@ public class SearchModel {
                                         mHandler.post(new Runnable() {
                                             @Override
                                             public void run() {
-                                                mStateChangeListener.onError(e.getMessage());
+                                                mStateChangeListener.onResultsError(e.getMessage());
                                             }
                                         });
                                     }
@@ -212,6 +217,6 @@ public class SearchModel {
 
     public interface StateChangeListener {
         public void onResultSetSizeChanged(int resultSetSize);
-        public void onError(String error);
+        public void onResultsError(String error);
     }
 }

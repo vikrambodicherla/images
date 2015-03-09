@@ -17,8 +17,6 @@ import com.markiv.images.ui.history.SearchHistoryManager;
 
 public class SearchActivity extends ActionBarActivity {
     private static final String QUERY = "query";
-    private SearchModel mSearchModel;
-    private SearchView mSearchView;
     private SearchPresenter mSearchPresenter;
 
     private ImageViewManager mImageViewManager;
@@ -49,10 +47,11 @@ public class SearchActivity extends ActionBarActivity {
         //M, V and P
         mImageViewManager = ImageViewManager.newInstance(this);
 
-        mSearchView = new SearchView(this, mImageViewManager);
-        mSearchModel = new SearchModel(GISService.newInstance(this, mQuery));
-        mSearchPresenter = new SearchPresenter(this, mQuery, mSearchView, mSearchModel);
-        mSearchPresenter.bind();
+        mSearchPresenter = new SearchPresenter(this, mQuery);
+        SearchView searchView = new SearchView(this, mImageViewManager, mSearchPresenter.getSearchResultGetExceptionHandler());
+        SearchModel searchModel = new SearchModel(GISService.newInstance(this, mQuery));
+
+        mSearchPresenter.bind(searchView, searchModel);
     }
 
     private void setupStrictModeIfDebug(){
@@ -79,22 +78,19 @@ public class SearchActivity extends ActionBarActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        mSearchView.onPause();
-        mSearchModel.onPause();
+        mSearchPresenter.onPause();
     }
 
     @Override
     public void onLowMemory() {
         super.onLowMemory();
-        mSearchView.onLowMemory();
-        mSearchModel.onLowMemory();
+        mSearchPresenter.onLowMemory();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mSearchView.onDestory();
-        mSearchModel.onDestroy();
+        mSearchPresenter.onDestroy();
     }
 
     private String getQueryFromIntent(Intent intent) {
