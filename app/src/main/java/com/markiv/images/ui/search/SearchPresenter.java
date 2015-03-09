@@ -1,4 +1,4 @@
-package com.markiv.images.ui;
+package com.markiv.images.ui.search;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;

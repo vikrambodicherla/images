@@ -20,6 +20,7 @@ import com.markiv.images.BuildConfig;
 import com.markiv.images.R;
 import com.markiv.images.ui.history.SearchHistoryAdapter;
 import com.markiv.images.ui.history.SearchHistoryManager;
+import com.markiv.images.ui.search.SearchActivity;
 
 public class MainActivity extends ActionBarActivity {
     private ListView mHistoryListView;

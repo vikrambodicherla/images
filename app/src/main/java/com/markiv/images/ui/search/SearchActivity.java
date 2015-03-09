@@ -1,5 +1,5 @@
 
-package com.markiv.images.ui;
+package com.markiv.images.ui.search;
 
 import android.app.SearchManager;
 import android.content.Intent;

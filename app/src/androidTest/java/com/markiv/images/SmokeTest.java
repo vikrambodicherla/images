@@ -4,7 +4,7 @@ import android.app.SearchManager;
 import android.content.Intent;
 import android.test.ActivityInstrumentationTestCase2;
 
-import com.markiv.images.ui.SearchActivity;
+import com.markiv.images.ui.search.SearchActivity;
 import com.robotium.solo.Solo;
 
 public class SmokeTest extends ActivityInstrumentationTestCase2<SearchActivity> {

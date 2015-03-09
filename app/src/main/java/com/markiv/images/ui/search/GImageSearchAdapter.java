@@ -1,5 +1,5 @@
 
-package com.markiv.images.ui;
+package com.markiv.images.ui.search;
 
 import java.lang.ref.WeakReference;
 import java.util.HashMap;
