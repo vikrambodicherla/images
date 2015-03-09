@@ -87,10 +87,10 @@ public class SearchView {
         }
     }
 
-    public void showMessage(int messageResId) {
+    public void showMessage(String message) {
         mProgressBar.setVisibility(View.GONE);
         mViewFlipper.setDisplayedChild(1);
-        mMessagesTextView.setText(messageResId);
+        mMessagesTextView.setText(message);
         mErrorMessageTextView.setVisibility(View.INVISIBLE);
     }
 

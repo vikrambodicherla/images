@@ -1,5 +1,7 @@
 package com.markiv.images.ui;
 
+import android.content.Context;
+
 import java.util.concurrent.Future;
 
 import com.markiv.gis.Page;
@@ -10,10 +12,14 @@ import com.markiv.images.R;
  * @since 3/7/15
  */
 public class SearchPresenter implements SearchView.DataFetcher, SearchModel.StateChangeListener {
+    private final Context mContext;
+    private final String mQuery;
     private final SearchView mSearchView;
     private final SearchModel mSearchModel;
 
-    public SearchPresenter(SearchView searchView, SearchModel searchModel) {
+    public SearchPresenter(Context context, String query, SearchView searchView, SearchModel searchModel) {
+        mContext = context;
+        mQuery = query;
         mSearchView = searchView;
         mSearchModel = searchModel;
     }
@@ -26,7 +32,7 @@ public class SearchPresenter implements SearchView.DataFetcher, SearchModel.Stat
     @Override
     public void onResultSetSizeChanged(int resultSetSize) {
         if(resultSetSize == 0){
-            mSearchView.showMessage(R.string.no_search_results);
+            mSearchView.showMessage(mContext.getResources().getString(R.string.no_search_results, mQuery));
         }
         else {
             mSearchView.setDataChanged();

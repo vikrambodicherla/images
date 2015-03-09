@@ -51,7 +51,7 @@ public class SearchActivity extends ActionBarActivity {
 
         mSearchView = new SearchView(this, mImageViewManager);
         mSearchModel = new SearchModel(GISService.newInstance(this, mQuery));
-        mSearchPresenter = new SearchPresenter(mSearchView, mSearchModel);
+        mSearchPresenter = new SearchPresenter(this, mQuery, mSearchView, mSearchModel);
         mSearchPresenter.bind();
     }
 

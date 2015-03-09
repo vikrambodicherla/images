@@ -71,14 +71,9 @@ public class SearchModel {
             protected void onPostExecute(Integer integer) {
                 if(integer != null) {
                     mDisplayedResultCount = integer;
-                    if (mDisplayedResultCount == 0) {
-                        mState = State.EMPTY_SET;
-                        //No notification needed to listeners
-                    } else {
-                        mState = State.NON_EMPTY_SET;
-                        if(mStateChangeListener != null){
-                            mStateChangeListener.onResultSetSizeChanged(mDisplayedResultCount);
-                        }
+                    mState = mDisplayedResultCount == 0 ? State.EMPTY_SET : State.NON_EMPTY_SET;
+                    if(mStateChangeListener != null){
+                        mStateChangeListener.onResultSetSizeChanged(mDisplayedResultCount);
                     }
                 }
                 else {
@@ -91,7 +86,7 @@ public class SearchModel {
             }
         }.execute((Void)null);
     }
-
+    
     public void setStateChangeListener(StateChangeListener stateChangeListener) {
         mStateChangeListener = stateChangeListener;
     }
