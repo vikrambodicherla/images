@@ -13,6 +13,7 @@ import com.markiv.gis.GISService;
 import com.markiv.gis.image.ImageViewManager;
 import com.markiv.images.BuildConfig;
 import com.markiv.images.R;
+import com.markiv.images.ui.history.SearchHistoryManager;
 
 public class SearchActivity extends ActionBarActivity {
     private static final String QUERY = "query";
@@ -41,6 +42,9 @@ public class SearchActivity extends ActionBarActivity {
         actionBar.setTitle(mQuery);
         actionBar.setDisplayHomeAsUpEnabled(true);
         setContentView(R.layout.activity_search);
+
+        //Record search
+        new SearchHistoryManager(this).recordSearch(mQuery);
 
         //M, V and P
         mImageViewManager = ImageViewManager.newInstance(this);

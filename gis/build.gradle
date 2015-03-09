@@ -65,5 +65,5 @@ dependencies {
         exclude module: 'wagon-provider-api'
         exclude group: 'com.android.support', module: 'support-v4'
     }
-    androidTestCompile 'junit:junit:4.11'
+    androidTestCompile 'junit:junit:4.12'
 }
